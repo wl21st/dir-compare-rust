@@ -3,6 +3,6 @@ pub mod output;
 
 pub use comparison::{
     compare_directories, ComparisonResult, ComparisonStrategy, Entry, EntryKind, FastHashStrategy,
-    FilenameOnlyStrategy, FilenameSizeStrategy,
+    FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy,
 };
 pub use output::Formatter;

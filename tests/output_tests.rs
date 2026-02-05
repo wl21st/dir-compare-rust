@@ -11,22 +11,26 @@ mod tests {
 
         a_only.push(Entry {
             path: PathBuf::from("dir_a-only/"),
+            absolute_path: PathBuf::from("/abs/dir_a-only/"),
             kind: EntryKind::Directory,
             size: None,
         });
         a_only.push(Entry {
             path: PathBuf::from("file_a.txt"),
+            absolute_path: PathBuf::from("/abs/file_a.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
 
         b_only.push(Entry {
             path: PathBuf::from("dir_b-only/"),
+            absolute_path: PathBuf::from("/abs/dir_b-only/"),
             kind: EntryKind::Directory,
             size: None,
         });
         b_only.push(Entry {
             path: PathBuf::from("file_b.txt"),
+            absolute_path: PathBuf::from("/abs/file_b.txt"),
             kind: EntryKind::File,
             size: Some(200),
         });
@@ -34,11 +38,13 @@ mod tests {
         both.push((
             Entry {
                 path: PathBuf::from("common.txt"),
+                absolute_path: PathBuf::from("/abs/common.txt"),
                 kind: EntryKind::File,
                 size: Some(150),
             },
             Entry {
                 path: PathBuf::from("common.txt"),
+                absolute_path: PathBuf::from("/abs/common.txt"),
                 kind: EntryKind::File,
                 size: Some(150),
             },
@@ -167,6 +173,7 @@ mod tests {
         };
         result.a_only.push(Entry {
             path: PathBuf::from("file<with>&\"chars.txt"),
+            absolute_path: PathBuf::from("/abs/file<with>&\"chars.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
@@ -189,6 +196,7 @@ mod tests {
         };
         result.a_only.push(Entry {
             path: PathBuf::from("file_with_*.txt"),
+            absolute_path: PathBuf::from("/abs/file_with_*.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
@@ -208,16 +216,19 @@ mod tests {
         };
         result.a_only.push(Entry {
             path: PathBuf::from("файл-тест.txt"),
+            absolute_path: PathBuf::from("/abs/файл-тест.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
         result.a_only.push(Entry {
             path: PathBuf::from("测试文件.txt"),
+            absolute_path: PathBuf::from("/abs/测试文件.txt"),
             kind: EntryKind::File,
             size: Some(200),
         });
         result.a_only.push(Entry {
             path: PathBuf::from("emoji🎉.txt"),
+            absolute_path: PathBuf::from("/abs/emoji🎉.txt"),
             kind: EntryKind::File,
             size: Some(50),
         });

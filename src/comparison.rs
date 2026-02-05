@@ -1,3 +1,4 @@
+use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -31,6 +32,7 @@ pub enum EntryKind {
 ///
 /// let entry = Entry {
 ///     path: PathBuf::from("documents/report.txt"),
+///     absolute_path: PathBuf::from("/abs/documents/report.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(1024),
 /// };
@@ -39,6 +41,8 @@ pub enum EntryKind {
 pub struct Entry {
     /// The relative path of the entry from the root directory
     pub path: PathBuf,
+    /// The absolute path of the entry (for file access)
+    pub absolute_path: PathBuf,
     /// The type of entry (file or directory)
     pub kind: EntryKind,
     /// The file size in bytes (None for directories)
@@ -59,11 +63,13 @@ pub struct Entry {
 /// let strategy = FilenameOnlyStrategy::new(false);
 /// let entry1 = Entry {
 ///     path: PathBuf::from("file.txt"),
+///     absolute_path: PathBuf::from("/abs/file.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(100),
 /// };
 /// let entry2 = Entry {
 ///     path: PathBuf::from("file.txt"),
+///     absolute_path: PathBuf::from("/abs/file.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(200),
 /// };
@@ -247,9 +253,137 @@ impl ComparisonStrategy for FastHashStrategy {
         match (&a.kind, &b.kind) {
             (EntryKind::Directory, EntryKind::Directory) => true,
             (EntryKind::File, EntryKind::File) => {
-                let hash_a = compute_file_hash(&a.path);
-                let hash_b = compute_file_hash(&b.path);
+                let hash_a = compute_file_hash(&a.absolute_path);
+                let hash_b = compute_file_hash(&b.absolute_path);
                 hash_a == hash_b
+            }
+            _ => false,
+        }
+    }
+}
+
+/// Comparison strategy that matches files by filename and sampled content hash.
+///
+/// Uses SHA-256 to hash samples of the file.
+/// Files match if they have the same filename and identical sampled hash.
+/// Directories are matched by filename only.
+///
+/// # Examples
+///
+/// ```
+/// use dir_compare::{SampledHashStrategy, ComparisonStrategy};
+///
+/// let strategy = SampledHashStrategy::new(false, false);
+/// ```
+pub struct SampledHashStrategy {
+    case_insensitive: bool,
+    verify_on_match: bool,
+}
+
+impl SampledHashStrategy {
+    /// Creates a new SampledHashStrategy.
+    ///
+    /// # Arguments
+    ///
+    /// * `case_insensitive` - If true, filenames are compared case-insensitively
+    /// * `verify_on_match` - If true, performs a full hash check if sampled hashes match
+    pub fn new(case_insensitive: bool, verify_on_match: bool) -> Self {
+        Self {
+            case_insensitive,
+            verify_on_match,
+        }
+    }
+}
+
+const SAMPLE_SIZE: u64 = 431;
+const SAMPLE_COUNT: u64 = 7;
+
+fn compute_sampled_hash(path: &Path) -> String {
+    use std::fs::File;
+    use std::io::{Read, Seek, SeekFrom};
+
+    let mut file = match File::open(path) {
+        Ok(f) => f,
+        Err(_) => return String::new(),
+    };
+
+    let size = match file.metadata() {
+        Ok(m) => m.len(),
+        Err(_) => return String::new(),
+    };
+
+    let mut hasher = Sha256::new();
+
+    if size < SAMPLE_COUNT * SAMPLE_SIZE {
+        let mut buffer = Vec::new();
+        if file.read_to_end(&mut buffer).is_ok() {
+            hasher.update(&buffer);
+        }
+    } else {
+        let interior_len = size - 2 * SAMPLE_SIZE;
+        let step = interior_len / (SAMPLE_COUNT - 1);
+
+        let mut buffer = vec![0u8; SAMPLE_SIZE as usize];
+
+        // Sample 1: first 431 bytes
+        if file.seek(SeekFrom::Start(0)).is_ok() && file.read_exact(&mut buffer).is_ok() {
+            hasher.update(&buffer);
+        }
+
+        // Samples 2-6: interior samples
+        for i in 1..=5 {
+            let offset = std::cmp::min(SAMPLE_SIZE + i * step, size - 2 * SAMPLE_SIZE);
+            if file.seek(SeekFrom::Start(offset)).is_ok() && file.read_exact(&mut buffer).is_ok() {
+                hasher.update(&buffer);
+            }
+        }
+
+        // Sample 7: last 431 bytes
+        if file.seek(SeekFrom::Start(size - SAMPLE_SIZE)).is_ok()
+            && file.read_exact(&mut buffer).is_ok()
+        {
+            hasher.update(&buffer);
+        }
+    }
+
+    format!("{:x}", hasher.finalize())
+}
+
+impl ComparisonStrategy for SampledHashStrategy {
+    fn matches(&self, a: &Entry, b: &Entry) -> bool {
+        let name_match = {
+            let name_a = if self.case_insensitive {
+                a.path.to_string_lossy().to_lowercase()
+            } else {
+                a.path.to_string_lossy().to_string()
+            };
+            let name_b = if self.case_insensitive {
+                b.path.to_string_lossy().to_lowercase()
+            } else {
+                b.path.to_string_lossy().to_string()
+            };
+            name_a == name_b
+        };
+
+        if !name_match {
+            return false;
+        }
+
+        match (&a.kind, &b.kind) {
+            (EntryKind::Directory, EntryKind::Directory) => true,
+            (EntryKind::File, EntryKind::File) => {
+                let hash_a = compute_sampled_hash(&a.absolute_path);
+                let hash_b = compute_sampled_hash(&b.absolute_path);
+
+                if hash_a != hash_b {
+                    false
+                } else if self.verify_on_match {
+                    let full_a = compute_file_hash(&a.absolute_path);
+                    let full_b = compute_file_hash(&b.absolute_path);
+                    full_a == full_b
+                } else {
+                    true
+                }
             }
             _ => false,
         }
@@ -282,8 +416,9 @@ fn compute_file_hash(path: &std::path::Path) -> String {
 
 pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> {
     let mut entries = Vec::new();
+    let abs_base = std::fs::canonicalize(dir)?;
 
-    for entry in walkdir::WalkDir::new(dir)
+    for entry in walkdir::WalkDir::new(&abs_base)
         .follow_links(false)
         .sort_by_file_name()
         .min_depth(1)
@@ -291,7 +426,9 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
     {
         match entry {
             Ok(entry) => {
-                let path = entry.path().to_path_buf();
+                let absolute_path = entry.path().to_path_buf();
+                // Initialize path as absolute; compare_directories will convert to relative
+                let path = absolute_path.clone();
                 let kind = if entry.file_type().is_dir() {
                     EntryKind::Directory
                 } else {
@@ -302,7 +439,12 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
                 } else {
                     None
                 };
-                entries.push(Entry { path, kind, size });
+                entries.push(Entry {
+                    path,
+                    absolute_path,
+                    kind,
+                    size,
+                });
             }
             Err(ref e) => {
                 if let Some(path) = e.path() {
@@ -327,6 +469,8 @@ pub enum ComparisonStrategyType {
     FilenameSize,
     /// Compare by filename and content hash
     FastHash,
+    /// Compare by filename and sampled content hash
+    SampledHash,
 }
 
 /// The result of comparing two directories.

@@ -1,7 +1,7 @@
 use clap::Parser;
 use dir_compare::comparison::{
     compare_directories, ComparisonStrategy, FastHashStrategy, FilenameOnlyStrategy,
-    FilenameSizeStrategy,
+    FilenameSizeStrategy, SampledHashStrategy,
 };
 use dir_compare::output::{Formatter, HtmlFormatter, MarkdownFormatter, TextFormatter};
 use std::path::PathBuf;
@@ -30,6 +30,10 @@ struct Args {
 
     #[arg(short, long)]
     output: Option<PathBuf>,
+
+    /// Verify matches with full hash when using sampled-hash strategy
+    #[arg(long)]
+    verify: bool,
 }
 
 fn main() {
@@ -65,9 +69,12 @@ fn main() {
         "filename" | "name" => Box::new(FilenameOnlyStrategy::new(args.case_insensitive)),
         "size" => Box::new(FilenameSizeStrategy::new(args.case_insensitive)),
         "hash" | "fxhash" | "fasthash" => Box::new(FastHashStrategy::new(args.case_insensitive)),
+        "sampled" | "sampled-hash" => {
+            Box::new(SampledHashStrategy::new(args.case_insensitive, args.verify))
+        }
         _ => {
             eprintln!("Error: Invalid comparison method '{}'", args.method);
-            eprintln!("Available methods: filename, size, hash");
+            eprintln!("Available methods: filename, size, hash, sampled");
             process::exit(1);
         }
     };
