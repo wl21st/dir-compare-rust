@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 /// # Examples
 ///
 /// ```
-/// use dir_compare::EntryKind;
+/// use dir_compare_core::EntryKind;
 ///
 /// let file_kind = EntryKind::File;
 /// let dir_kind = EntryKind::Directory;
@@ -27,10 +27,11 @@ pub enum EntryKind {
 ///
 /// ```
 /// use std::path::PathBuf;
-/// use dir_compare::{Entry, EntryKind};
+/// use dir_compare_core::{Entry, EntryKind};
 ///
 /// let entry = Entry {
 ///     path: PathBuf::from("documents/report.txt"),
+///     abs_path: PathBuf::from("/abs/documents/report.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(1024),
 /// };
@@ -39,6 +40,8 @@ pub enum EntryKind {
 pub struct Entry {
     /// The relative path of the entry from the root directory
     pub path: PathBuf,
+    /// The absolute path of the entry (for internal use)
+    pub abs_path: PathBuf,
     /// The type of entry (file or directory)
     pub kind: EntryKind,
     /// The file size in bytes (None for directories)
@@ -54,16 +57,18 @@ pub struct Entry {
 ///
 /// ```
 /// use std::path::PathBuf;
-/// use dir_compare::{Entry, EntryKind, ComparisonStrategy, FilenameOnlyStrategy};
+/// use dir_compare_core::{Entry, EntryKind, ComparisonStrategy, FilenameOnlyStrategy};
 ///
 /// let strategy = FilenameOnlyStrategy::new(false);
 /// let entry1 = Entry {
 ///     path: PathBuf::from("file.txt"),
+///     abs_path: PathBuf::from("/abs/file.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(100),
 /// };
 /// let entry2 = Entry {
 ///     path: PathBuf::from("file.txt"),
+///     abs_path: PathBuf::from("/abs/file.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(200),
 /// };
@@ -92,7 +97,7 @@ pub trait ComparisonStrategy {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{FilenameOnlyStrategy, ComparisonStrategy};
+/// use dir_compare_core::{FilenameOnlyStrategy, ComparisonStrategy};
 ///
 /// let case_sensitive = FilenameOnlyStrategy::new(false);
 /// let case_insensitive = FilenameOnlyStrategy::new(true);
@@ -140,7 +145,7 @@ impl ComparisonStrategy for FilenameOnlyStrategy {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{FilenameSizeStrategy, ComparisonStrategy};
+/// use dir_compare_core::{FilenameSizeStrategy, ComparisonStrategy};
 ///
 /// let strategy = FilenameSizeStrategy::new(false);
 /// ```
@@ -205,7 +210,7 @@ impl ComparisonStrategy for FilenameSizeStrategy {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{FastHashStrategy, ComparisonStrategy};
+/// use dir_compare_core::{FastHashStrategy, ComparisonStrategy};
 ///
 /// let strategy = FastHashStrategy::new(false);
 /// ```
@@ -247,8 +252,8 @@ impl ComparisonStrategy for FastHashStrategy {
         match (&a.kind, &b.kind) {
             (EntryKind::Directory, EntryKind::Directory) => true,
             (EntryKind::File, EntryKind::File) => {
-                let hash_a = compute_file_hash(&a.path);
-                let hash_b = compute_file_hash(&b.path);
+                let hash_a = compute_file_hash(&a.abs_path);
+                let hash_b = compute_file_hash(&b.abs_path);
                 hash_a == hash_b
             }
             _ => false,
@@ -281,6 +286,8 @@ fn compute_file_hash(path: &std::path::Path) -> String {
 }
 
 pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> {
+    // Canonicalize the directory path to ensure we work with absolute paths
+    let dir = std::fs::canonicalize(dir)?;
     let mut entries = Vec::new();
 
     for entry in walkdir::WalkDir::new(dir)
@@ -292,6 +299,7 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
         match entry {
             Ok(entry) => {
                 let path = entry.path().to_path_buf();
+                let abs_path = path.clone();
                 let kind = if entry.file_type().is_dir() {
                     EntryKind::Directory
                 } else {
@@ -302,7 +310,12 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
                 } else {
                     None
                 };
-                entries.push(Entry { path, kind, size });
+                entries.push(Entry {
+                    path,
+                    abs_path,
+                    kind,
+                    size,
+                });
             }
             Err(ref e) => {
                 if let Some(path) = e.path() {
@@ -320,6 +333,7 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
 /// Enumeration of available comparison strategy types.
 ///
 /// Used by CLI and programmatic interfaces to select the comparison method.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComparisonStrategyType {
     /// Compare by filename only
     Filename,
@@ -339,8 +353,8 @@ pub enum ComparisonStrategyType {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::compare_directories;
-/// use dir_compare::FilenameOnlyStrategy;
+/// use dir_compare_core::compare_directories;
+/// use dir_compare_core::FilenameOnlyStrategy;
 ///
 /// let strategy = FilenameOnlyStrategy::new(false);
 /// let result = compare_directories(
@@ -386,7 +400,7 @@ pub struct ComparisonResult {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{compare_directories, FilenameOnlyStrategy};
+/// use dir_compare_core::{compare_directories, FilenameOnlyStrategy};
 ///
 /// let strategy = FilenameOnlyStrategy::new(false);
 /// let result = compare_directories(

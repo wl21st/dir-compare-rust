@@ -1,0 +1,15 @@
+[package]
+name = "dir-compare-gui"
+version.workspace = true
+edition.workspace = true
+description = "GUI tool for comparing two directories"
+
+[[bin]]
+name = "dir-compare-gui"
+path = "src/main.rs"
+
+[dependencies]
+dir-compare-core.workspace = true
+egui.workspace = true
+eframe.workspace = true
+rfd.workspace = true

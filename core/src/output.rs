@@ -8,7 +8,7 @@ use crate::comparison::{ComparisonResult, EntryKind};
 /// # Examples
 ///
 /// ```
-/// use dir_compare::output::{Formatter, TextFormatter};
+/// use dir_compare_core::output::{Formatter, TextFormatter};
 ///
 /// let formatter = TextFormatter;
 /// // Assuming `result` is a valid ComparisonResult
@@ -107,7 +107,7 @@ impl Formatter for TextFormatter {
 /// # Usage
 ///
 /// ```
-/// use dir_compare::output::{HtmlFormatter, Formatter};
+/// use dir_compare_core::output::{HtmlFormatter, Formatter};
 ///
 /// let formatter = HtmlFormatter;
 /// // let html = formatter.format(&result);

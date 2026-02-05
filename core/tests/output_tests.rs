@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use dir_compare::comparison::{ComparisonResult, Entry, EntryKind};
-    use dir_compare::output::{Formatter, HtmlFormatter, MarkdownFormatter, TextFormatter};
+    use dir_compare_core::comparison::{ComparisonResult, Entry, EntryKind};
+    use dir_compare_core::output::{Formatter, HtmlFormatter, MarkdownFormatter, TextFormatter};
     use std::path::PathBuf;
 
     fn create_test_result() -> ComparisonResult {
@@ -11,22 +11,26 @@ mod tests {
 
         a_only.push(Entry {
             path: PathBuf::from("dir_a-only/"),
+            abs_path: PathBuf::from("dir_a-only/"),
             kind: EntryKind::Directory,
             size: None,
         });
         a_only.push(Entry {
             path: PathBuf::from("file_a.txt"),
+            abs_path: PathBuf::from("file_a.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
 
         b_only.push(Entry {
             path: PathBuf::from("dir_b-only/"),
+            abs_path: PathBuf::from("dir_b-only/"),
             kind: EntryKind::Directory,
             size: None,
         });
         b_only.push(Entry {
             path: PathBuf::from("file_b.txt"),
+            abs_path: PathBuf::from("file_b.txt"),
             kind: EntryKind::File,
             size: Some(200),
         });
@@ -34,11 +38,13 @@ mod tests {
         both.push((
             Entry {
                 path: PathBuf::from("common.txt"),
+                abs_path: PathBuf::from("common.txt"),
                 kind: EntryKind::File,
                 size: Some(150),
             },
             Entry {
                 path: PathBuf::from("common.txt"),
+                abs_path: PathBuf::from("common.txt"),
                 kind: EntryKind::File,
                 size: Some(150),
             },
@@ -167,6 +173,7 @@ mod tests {
         };
         result.a_only.push(Entry {
             path: PathBuf::from("file<with>&\"chars.txt"),
+            abs_path: PathBuf::from("file<with>&\"chars.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
@@ -189,6 +196,7 @@ mod tests {
         };
         result.a_only.push(Entry {
             path: PathBuf::from("file_with_*.txt"),
+            abs_path: PathBuf::from("file_with_*.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
@@ -208,16 +216,19 @@ mod tests {
         };
         result.a_only.push(Entry {
             path: PathBuf::from("файл-тест.txt"),
+            abs_path: PathBuf::from("файл-тест.txt"),
             kind: EntryKind::File,
             size: Some(100),
         });
         result.a_only.push(Entry {
             path: PathBuf::from("测试文件.txt"),
+            abs_path: PathBuf::from("测试文件.txt"),
             kind: EntryKind::File,
             size: Some(200),
         });
         result.a_only.push(Entry {
             path: PathBuf::from("emoji🎉.txt"),
+            abs_path: PathBuf::from("emoji🎉.txt"),
             kind: EntryKind::File,
             size: Some(50),
         });

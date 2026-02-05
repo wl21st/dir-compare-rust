@@ -1,15 +1,25 @@
-[package]
-name = "dir-compare"
+[workspace]
+members = [
+    "cli",
+    "core",
+    "gui",
+]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+authors = ["dir-compare contributors"]
 
-[dependencies]
+[workspace.dependencies]
+dir-compare-core = { path = "core" }
 walkdir = "2.5"
-clap = { version = "4.4", features = ["derive"] }
 fxhash = "0.2"
 thiserror = "1.0"
-
-[dev-dependencies]
+clap = { version = "4.4", features = ["derive"] }
+egui = "0.27"
+eframe = "0.27"
+rfd = "0.14"
 tempfile = "3.8"
 assert_cmd = "2.0"
 predicates = "3.0"

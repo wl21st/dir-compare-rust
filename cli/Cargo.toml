@@ -1,0 +1,18 @@
+[package]
+name = "dir-compare-cli"
+version.workspace = true
+edition.workspace = true
+description = "CLI tool for comparing two directories"
+
+[[bin]]
+name = "dir-compare"
+path = "src/main.rs"
+
+[dependencies]
+dir-compare-core.workspace = true
+clap.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+assert_cmd.workspace = true
+predicates.workspace = true

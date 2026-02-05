@@ -1,9 +1,9 @@
 use clap::Parser;
-use dir_compare::comparison::{
+use dir_compare_core::comparison::{
     compare_directories, ComparisonStrategy, FastHashStrategy, FilenameOnlyStrategy,
     FilenameSizeStrategy,
 };
-use dir_compare::output::{Formatter, HtmlFormatter, MarkdownFormatter, TextFormatter};
+use dir_compare_core::output::{Formatter, HtmlFormatter, MarkdownFormatter, TextFormatter};
 use std::path::PathBuf;
 use std::process;
 

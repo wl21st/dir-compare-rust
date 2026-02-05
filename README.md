@@ -12,8 +12,14 @@ A command-line tool for comparing two directories and reporting their difference
 
 ## Installation
 
+To install the CLI tool:
 ```bash
-cargo install dir-compare
+cargo install --path cli
+```
+
+To install the GUI tool:
+```bash
+cargo install --path gui
 ```
 
 Or build from source:
@@ -21,12 +27,30 @@ Or build from source:
 ```bash
 git clone <repository>
 cd dir-compare
-cargo build --release
+cargo build --release --workspace
 ```
 
 ## Usage
 
-### Basic Comparison
+### GUI Usage
+
+To launch the graphical interface:
+
+```bash
+cargo run --bin dir-compare-gui --release
+# or if installed
+dir-compare-gui
+```
+
+The GUI provides:
+- Visual directory selection with validation
+- Interactive tree view of differences
+- Expandable folders for navigating deep structures
+- Color-coded results (Red for A-only, Green for B-only, Blue for Both)
+- Comparison method selection (Filename, Size, Hash)
+- Light/Dark theme support
+
+### CLI Basic Comparison
 
 Compare two directories using the default filename-only method:
 
