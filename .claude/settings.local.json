@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr:*)",
+      "Bash(cargo test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor\\(comparison\\): address code review feedback\n\n- Add documentation for SAMPLE_SIZE \\(431\\) and SAMPLE_COUNT \\(7\\) constants\n  explaining the rationale behind the chosen values\n- Fix empty string hash collision by returning unique error markers\n  \\(format!\\(\"ERROR:{}\", path\\)\\) instead of empty strings\n- Improve performance by allocating sampling buffer once before loop\n  instead of reallocating for each sample\n- Add explanatory comments for sampling algorithm and invariants\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(cargo build:*)"
+    ]
+  }
+}

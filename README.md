@@ -80,6 +80,14 @@ dir-compare -a dir_a -b dir_b --method hash
 ```
 Matches files with the same name AND identical content. Most accurate for finding duplicates.
 
+#### By Filename and Sampled Hash
+```bash
+dir-compare -a dir_a -b dir_b --method sampled
+```
+Matches files with the same name AND identical sampled content hash.
+Fast for large files as it reads small samples (default 7 samples of 431 bytes).
+Use `--verify` to verify matches with full content hash.
+
 ### Case-Insensitive Comparison
 
 Compare filenames without regard to case:
@@ -119,16 +127,18 @@ dir-compare -a dir_a -b dir_b --output results.txt
 
 ## Comparison Method Trade-offs
 
-| Method | Speed | Use Case |
+| method | Speed | Use Case |
 |--------|-------|----------|
 | filename | Fastest | Quick overview of missing files |
 | size | Fast | Finding modified files with same name |
+| sampled | Fast | Comparing large files with IO constraints |
 | hash | Slower | Verifying file content identity |
 
 ### Performance Characteristics
 
 - **filename**: O(n) - Only compares file names
 - **size**: O(n) - Compares names and reads metadata
+- **sampled**: O(n) - Constant IO per file (read ~3KB), much faster than hash for large files
 - **hash**: O(n×f) - Must read file contents; time depends on total file size
 
 For large directories with many files:
@@ -226,6 +236,7 @@ dir-compare -a /correct/path/a -b /correct/path/b
 ```bash
 --method filename    # or "name"
 --method size
+--method sampled     # or "sampled-hash"
 --method hash        # or "fxhash" or "fasthash"
 ```
 
