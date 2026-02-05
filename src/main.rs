@@ -1,0 +1,108 @@
+use clap::Parser;
+use dir_compare::comparison::{
+    compare_directories, ComparisonStrategy, FastHashStrategy, FilenameOnlyStrategy,
+    FilenameSizeStrategy,
+};
+use dir_compare::output::{Formatter, HtmlFormatter, MarkdownFormatter, TextFormatter};
+use std::path::PathBuf;
+use std::process;
+
+#[derive(clap::Parser)]
+#[command(name = "dir-compare")]
+#[command(author = "dir-compare contributors")]
+#[command(version = "0.1.0")]
+#[command(about = "Compare two directories and report differences", long_about = None)]
+struct Args {
+    #[arg(short = 'a', long = "dir-a")]
+    dir_a: PathBuf,
+
+    #[arg(short = 'b', long = "dir-b")]
+    dir_b: PathBuf,
+
+    #[arg(short, long, default_value = "filename")]
+    method: String,
+
+    #[arg(short, long)]
+    case_insensitive: bool,
+
+    #[arg(short, long, default_value = "text")]
+    format: String,
+
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+}
+
+fn main() {
+    let args = Args::parse();
+
+    if !args.dir_a.exists() {
+        eprintln!(
+            "Error: Directory A does not exist: {}",
+            args.dir_a.display()
+        );
+        process::exit(1);
+    }
+
+    if !args.dir_b.exists() {
+        eprintln!(
+            "Error: Directory B does not exist: {}",
+            args.dir_b.display()
+        );
+        process::exit(1);
+    }
+
+    if !args.dir_a.is_dir() {
+        eprintln!("Error: Path A is not a directory: {}", args.dir_a.display());
+        process::exit(1);
+    }
+
+    if !args.dir_b.is_dir() {
+        eprintln!("Error: Path B is not a directory: {}", args.dir_b.display());
+        process::exit(1);
+    }
+
+    let strategy: Box<dyn ComparisonStrategy> = match args.method.to_lowercase().as_str() {
+        "filename" | "name" => Box::new(FilenameOnlyStrategy::new(args.case_insensitive)),
+        "size" => Box::new(FilenameSizeStrategy::new(args.case_insensitive)),
+        "hash" | "fxhash" | "fasthash" => Box::new(FastHashStrategy::new(args.case_insensitive)),
+        _ => {
+            eprintln!("Error: Invalid comparison method '{}'", args.method);
+            eprintln!("Available methods: filename, size, hash");
+            process::exit(1);
+        }
+    };
+
+    match compare_directories(&args.dir_a, &args.dir_b, strategy.as_ref()) {
+        Ok(result) => {
+            let formatter: Box<dyn Formatter> = match args.format.to_lowercase().as_str() {
+                "text" | "txt" => Box::new(TextFormatter),
+                "html" => Box::new(HtmlFormatter),
+                "markdown" | "md" => Box::new(MarkdownFormatter),
+                _ => {
+                    eprintln!("Error: Invalid format '{}'", args.format);
+                    eprintln!("Available formats: text, html, markdown");
+                    process::exit(1);
+                }
+            };
+
+            let output = formatter.format(&result);
+
+            match args.output {
+                Some(path) => match std::fs::write(&path, &output) {
+                    Ok(_) => println!("Report written to: {}", path.display()),
+                    Err(e) => {
+                        eprintln!("Error writing to file: {}", e);
+                        process::exit(1);
+                    }
+                },
+                None => {
+                    println!("{}", output);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error during comparison: {}", e);
+            process::exit(1);
+        }
+    }
+}

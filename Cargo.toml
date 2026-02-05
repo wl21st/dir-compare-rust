@@ -1,0 +1,15 @@
+[package]
+name = "dir-compare"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+walkdir = "2.5"
+clap = { version = "4.4", features = ["derive"] }
+fxhash = "0.2"
+thiserror = "1.0"
+
+[dev-dependencies]
+tempfile = "3.8"
+assert_cmd = "2.0"
+predicates = "3.0"
