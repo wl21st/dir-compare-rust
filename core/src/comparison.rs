@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 /// # Examples
 ///
 /// ```
-/// use dir_compare::EntryKind;
+/// use dir_compare_core::EntryKind;
 ///
 /// let file_kind = EntryKind::File;
 /// let dir_kind = EntryKind::Directory;
@@ -28,11 +28,11 @@ pub enum EntryKind {
 ///
 /// ```
 /// use std::path::PathBuf;
-/// use dir_compare::{Entry, EntryKind};
+/// use dir_compare_core::{Entry, EntryKind};
 ///
 /// let entry = Entry {
 ///     path: PathBuf::from("documents/report.txt"),
-///     absolute_path: PathBuf::from("/abs/documents/report.txt"),
+///     abs_path: PathBuf::from("/abs/documents/report.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(1024),
 /// };
@@ -41,8 +41,8 @@ pub enum EntryKind {
 pub struct Entry {
     /// The relative path of the entry from the root directory
     pub path: PathBuf,
-    /// The absolute path of the entry (for file access)
-    pub absolute_path: PathBuf,
+    /// The absolute path of the entry (for internal use)
+    pub abs_path: PathBuf,
     /// The type of entry (file or directory)
     pub kind: EntryKind,
     /// The file size in bytes (None for directories)
@@ -58,18 +58,18 @@ pub struct Entry {
 ///
 /// ```
 /// use std::path::PathBuf;
-/// use dir_compare::{Entry, EntryKind, ComparisonStrategy, FilenameOnlyStrategy};
+/// use dir_compare_core::{Entry, EntryKind, ComparisonStrategy, FilenameOnlyStrategy};
 ///
 /// let strategy = FilenameOnlyStrategy::new(false);
 /// let entry1 = Entry {
 ///     path: PathBuf::from("file.txt"),
-///     absolute_path: PathBuf::from("/abs/file.txt"),
+///     abs_path: PathBuf::from("/abs/file.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(100),
 /// };
 /// let entry2 = Entry {
 ///     path: PathBuf::from("file.txt"),
-///     absolute_path: PathBuf::from("/abs/file.txt"),
+///     abs_path: PathBuf::from("/abs/file.txt"),
 ///     kind: EntryKind::File,
 ///     size: Some(200),
 /// };
@@ -98,7 +98,7 @@ pub trait ComparisonStrategy {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{FilenameOnlyStrategy, ComparisonStrategy};
+/// use dir_compare_core::{FilenameOnlyStrategy, ComparisonStrategy};
 ///
 /// let case_sensitive = FilenameOnlyStrategy::new(false);
 /// let case_insensitive = FilenameOnlyStrategy::new(true);
@@ -146,7 +146,7 @@ impl ComparisonStrategy for FilenameOnlyStrategy {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{FilenameSizeStrategy, ComparisonStrategy};
+/// use dir_compare_core::{FilenameSizeStrategy, ComparisonStrategy};
 ///
 /// let strategy = FilenameSizeStrategy::new(false);
 /// ```
@@ -211,7 +211,7 @@ impl ComparisonStrategy for FilenameSizeStrategy {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{FastHashStrategy, ComparisonStrategy};
+/// use dir_compare_core::{FastHashStrategy, ComparisonStrategy};
 ///
 /// let strategy = FastHashStrategy::new(false);
 /// ```
@@ -253,8 +253,8 @@ impl ComparisonStrategy for FastHashStrategy {
         match (&a.kind, &b.kind) {
             (EntryKind::Directory, EntryKind::Directory) => true,
             (EntryKind::File, EntryKind::File) => {
-                let hash_a = compute_file_hash(&a.absolute_path);
-                let hash_b = compute_file_hash(&b.absolute_path);
+                let hash_a = compute_file_hash(&a.abs_path);
+                let hash_b = compute_file_hash(&b.abs_path);
                 hash_a == hash_b
             }
             _ => false,
@@ -271,7 +271,7 @@ impl ComparisonStrategy for FastHashStrategy {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{SampledHashStrategy, ComparisonStrategy};
+/// use dir_compare_core::{SampledHashStrategy, ComparisonStrategy};
 ///
 /// let strategy = SampledHashStrategy::new(false, false);
 /// ```
@@ -404,14 +404,14 @@ impl ComparisonStrategy for SampledHashStrategy {
         match (&a.kind, &b.kind) {
             (EntryKind::Directory, EntryKind::Directory) => true,
             (EntryKind::File, EntryKind::File) => {
-                let hash_a = compute_sampled_hash(&a.absolute_path);
-                let hash_b = compute_sampled_hash(&b.absolute_path);
+                let hash_a = compute_sampled_hash(&a.abs_path);
+                let hash_b = compute_sampled_hash(&b.abs_path);
 
                 if hash_a != hash_b {
                     false
                 } else if self.verify_on_match {
-                    let full_a = compute_file_hash_sha256(&a.absolute_path);
-                    let full_b = compute_file_hash_sha256(&b.absolute_path);
+                    let full_a = compute_file_hash_sha256(&a.abs_path);
+                    let full_b = compute_file_hash_sha256(&b.abs_path);
                     full_a == full_b
                 } else {
                     true
@@ -484,10 +484,11 @@ fn compute_file_hash_sha256(path: &std::path::Path) -> String {
 }
 
 pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> {
+    // Canonicalize the directory path to ensure we work with absolute paths
+    let dir = std::fs::canonicalize(dir)?;
     let mut entries = Vec::new();
-    let abs_base = std::fs::canonicalize(dir)?;
 
-    for entry in walkdir::WalkDir::new(&abs_base)
+    for entry in walkdir::WalkDir::new(dir)
         .follow_links(false)
         .sort_by_file_name()
         .min_depth(1)
@@ -495,11 +496,8 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
     {
         match entry {
             Ok(entry) => {
-                let absolute_path = entry.path().to_path_buf();
-                let path = absolute_path
-                    .strip_prefix(&abs_base)
-                    .unwrap_or(&absolute_path)
-                    .to_path_buf();
+                let path = entry.path().to_path_buf();
+                let abs_path = path.clone();
                 let kind = if entry.file_type().is_dir() {
                     EntryKind::Directory
                 } else {
@@ -512,7 +510,7 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
                 };
                 entries.push(Entry {
                     path,
-                    absolute_path,
+                    abs_path,
                     kind,
                     size,
                 });
@@ -533,6 +531,7 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
 /// Enumeration of available comparison strategy types.
 ///
 /// Used by CLI and programmatic interfaces to select the comparison method.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComparisonStrategyType {
     /// Compare by filename only
     Filename,
@@ -554,8 +553,8 @@ pub enum ComparisonStrategyType {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::compare_directories;
-/// use dir_compare::FilenameOnlyStrategy;
+/// use dir_compare_core::compare_directories;
+/// use dir_compare_core::FilenameOnlyStrategy;
 ///
 /// let strategy = FilenameOnlyStrategy::new(false);
 /// let result = compare_directories(
@@ -601,7 +600,7 @@ pub struct ComparisonResult {
 /// # Examples
 ///
 /// ```
-/// use dir_compare::{compare_directories, FilenameOnlyStrategy};
+/// use dir_compare_core::{compare_directories, FilenameOnlyStrategy};
 ///
 /// let strategy = FilenameOnlyStrategy::new(false);
 /// let result = compare_directories(
@@ -622,11 +621,42 @@ pub fn compare_directories(
     let mut b_only: Vec<Entry> = Vec::new();
     let mut both: Vec<(Entry, Entry)> = Vec::new();
 
-    let map_a: HashMap<PathBuf, Entry> =
-        entries_a.into_iter().map(|e| (e.path.clone(), e)).collect();
+    let dir_a_canonical = std::fs::canonicalize(dir_a)?;
+    let dir_b_canonical = std::fs::canonicalize(dir_b)?;
 
-    let map_b: HashMap<PathBuf, Entry> =
-        entries_b.into_iter().map(|e| (e.path.clone(), e)).collect();
+    let map_a: HashMap<PathBuf, Entry> = entries_a
+        .into_iter()
+        .map(|e| {
+            let rel_path = if let Ok(stripped) = e.path.strip_prefix(&dir_a_canonical) {
+                stripped.to_path_buf()
+            } else {
+                e.path
+                    .file_name()
+                    .map(|n| PathBuf::from(n))
+                    .unwrap_or_else(|| e.path.clone())
+            };
+            let mut entry = e;
+            entry.path = rel_path.clone();
+            (rel_path, entry)
+        })
+        .collect();
+
+    let map_b: HashMap<PathBuf, Entry> = entries_b
+        .into_iter()
+        .map(|e| {
+            let rel_path = if let Ok(stripped) = e.path.strip_prefix(&dir_b_canonical) {
+                stripped.to_path_buf()
+            } else {
+                e.path
+                    .file_name()
+                    .map(|n| PathBuf::from(n))
+                    .unwrap_or_else(|| e.path.clone())
+            };
+            let mut entry = e;
+            entry.path = rel_path.clone();
+            (rel_path, entry)
+        })
+        .collect();
 
     let keys_a: HashSet<PathBuf> = map_a.keys().cloned().collect();
     let keys_b: HashSet<PathBuf> = map_b.keys().cloned().collect();

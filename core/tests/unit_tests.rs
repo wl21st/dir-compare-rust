@@ -30,8 +30,8 @@ mod tests {
             &[("file1.txt", b"content1"), ("file2.txt", b"content2")],
         );
 
-        let strategy = dir_compare::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare::compare_directories(&dir_a, &dir_b, &strategy);
+        let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -55,8 +55,8 @@ mod tests {
             &[("file1.txt", b"content1"), ("file5.txt", b"content5")],
         );
 
-        let strategy = dir_compare::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare::compare_directories(&dir_a, &dir_b, &strategy);
+        let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -79,8 +79,8 @@ mod tests {
         fs::create_dir_all(&dir_a).unwrap();
         fs::create_dir_all(&dir_b).unwrap();
 
-        let strategy = dir_compare::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare::compare_directories(&dir_a, &dir_b, &strategy);
+        let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -101,8 +101,8 @@ mod tests {
             &[("file.txt", b"different content")],
         );
 
-        let strategy = dir_compare::comparison::FilenameSizeStrategy::new(false);
-        let result = dir_compare::compare_directories(&dir_a, &dir_b, &strategy);
+        let strategy = dir_compare_core::comparison::FilenameSizeStrategy::new(false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -138,8 +138,8 @@ mod tests {
             ],
         );
 
-        let strategy = dir_compare::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare::compare_directories(&dir_a, &dir_b, &strategy);
+        let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -171,8 +171,8 @@ mod tests {
         )
         .unwrap();
 
-        let strategy = dir_compare::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare::compare_directories(&dir_a, &dir_b, &strategy);
+        let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -209,8 +209,8 @@ mod tests {
             create_test_dir_with_files(temp_dir.path(), "dir_b", &[("large.bin", &content_b)]);
 
         // 1. Sampling only -> Should Match
-        let strategy = dir_compare::comparison::SampledHashStrategy::new(false, false);
-        let result = dir_compare::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+        let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
         assert_eq!(
             result.both.len(),
             1,
@@ -218,9 +218,9 @@ mod tests {
         );
 
         // 2. Verify on match -> Should NOT Match
-        let strategy_verify = dir_compare::comparison::SampledHashStrategy::new(false, true);
+        let strategy_verify = dir_compare_core::SampledHashStrategy::new(false, true);
         let result_verify =
-            dir_compare::compare_directories(&dir_a, &dir_b, &strategy_verify).unwrap();
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy_verify).unwrap();
         assert_eq!(
             result_verify.both.len(),
             0,
@@ -236,7 +236,7 @@ mod tests {
             "dir_d",
             &[("small.txt", b"abd")], // diff
         );
-        let result_small = dir_compare::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
+        let result_small = dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
         assert_eq!(result_small.both.len(), 0, "Small files should differ");
     }
 }

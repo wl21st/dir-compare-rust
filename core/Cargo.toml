@@ -1,0 +1,13 @@
+[package]
+name = "dir-compare-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+walkdir.workspace = true
+fxhash.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
