@@ -13,3 +13,4 @@ dir-compare-core.workspace = true
 egui.workspace = true
 eframe.workspace = true
 rfd.workspace = true
+dirs.workspace = true
