@@ -295,7 +295,18 @@ impl SampledHashStrategy {
     }
 }
 
+/// Sample size in bytes for each sampled block.
+///
+/// 431 is chosen as a prime number to avoid alignment with common filesystem
+/// block sizes (typically powers of 2 like 512, 4096, etc.), ensuring
+/// more randomized sampling across different file layouts.
 const SAMPLE_SIZE: u64 = 431;
+
+/// Number of samples to read from each file.
+///
+/// 7 samples provides good coverage across file content while maintaining
+/// constant-time performance (~3KB total read per file). This balances
+/// detection accuracy with I/O efficiency.
 const SAMPLE_COUNT: u64 = 7;
 
 fn compute_sampled_hash(path: &Path) -> String {
@@ -306,7 +317,8 @@ fn compute_sampled_hash(path: &Path) -> String {
         Ok(f) => f,
         Err(e) => {
             eprintln!("Warning: Could not open {}: {}", path.display(), e);
-            return String::new();
+            // Return a unique error marker that won't match another error
+            return format!("ERROR:{}", path.display());
         }
     };
 
@@ -318,30 +330,40 @@ fn compute_sampled_hash(path: &Path) -> String {
                 path.display(),
                 e
             );
-            return String::new();
+            return format!("ERROR:{}", path.display());
         }
     };
 
     let mut hasher = Sha256::new();
 
     if size < SAMPLE_COUNT * SAMPLE_SIZE {
+        // File is smaller than total sample size, read entire file
         let mut buffer = Vec::new();
         if file.read_to_end(&mut buffer).is_ok() {
             hasher.update(&buffer);
         }
     } else {
+        // File is large enough for sampling strategy
+        // Allocate buffer once before loop for better performance
+        let mut buffer = vec![0u8; SAMPLE_SIZE as usize];
+
+        // Calculate step size for interior samples
+        // Interior region: exclude first and last SAMPLE_SIZE bytes
         let interior_len = size - 2 * SAMPLE_SIZE;
         let step = interior_len / (SAMPLE_COUNT - 1);
 
-        let mut buffer = vec![0u8; SAMPLE_SIZE as usize];
+        // Invariant: With SAMPLE_COUNT=7 and SAMPLE_SIZE=431, we need at least
+        // 7*431 = 3017 bytes for full sampling. The condition above ensures this.
 
         // Sample 1: first 431 bytes
         if file.seek(SeekFrom::Start(0)).is_ok() && file.read_exact(&mut buffer).is_ok() {
             hasher.update(&buffer);
         }
 
-        // Samples 2-6: interior samples
+        // Samples 2-6: interior samples evenly distributed
         for i in 1..=5 {
+            // Calculate offset for interior sample
+            // The min() clamps to prevent overlap with final sample
             let offset = std::cmp::min(SAMPLE_SIZE + i * step, size - 2 * SAMPLE_SIZE);
             if file.seek(SeekFrom::Start(offset)).is_ok() && file.read_exact(&mut buffer).is_ok() {
                 hasher.update(&buffer);
@@ -425,7 +447,8 @@ fn compute_file_hash(path: &std::path::Path) -> String {
         }
         Err(e) => {
             eprintln!("Warning: Could not open {}: {}", path.display(), e);
-            String::new()
+            // Return a unique error marker that won't match another error
+            format!("ERROR:{}", path.display())
         }
     }
 }
@@ -454,7 +477,8 @@ fn compute_file_hash_sha256(path: &std::path::Path) -> String {
         }
         Err(e) => {
             eprintln!("Warning: Could not open {}: {}", path.display(), e);
-            String::new()
+            // Return a unique error marker that won't match another error
+            format!("ERROR:{}", path.display())
         }
     }
 }
