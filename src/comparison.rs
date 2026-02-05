@@ -304,12 +304,22 @@ fn compute_sampled_hash(path: &Path) -> String {
 
     let mut file = match File::open(path) {
         Ok(f) => f,
-        Err(_) => return String::new(),
+        Err(e) => {
+            eprintln!("Warning: Could not open {}: {}", path.display(), e);
+            return String::new();
+        }
     };
 
     let size = match file.metadata() {
         Ok(m) => m.len(),
-        Err(_) => return String::new(),
+        Err(e) => {
+            eprintln!(
+                "Warning: Could not get metadata for {}: {}",
+                path.display(),
+                e
+            );
+            return String::new();
+        }
     };
 
     let mut hasher = Sha256::new();
@@ -378,8 +388,8 @@ impl ComparisonStrategy for SampledHashStrategy {
                 if hash_a != hash_b {
                     false
                 } else if self.verify_on_match {
-                    let full_a = compute_file_hash(&a.absolute_path);
-                    let full_b = compute_file_hash(&b.absolute_path);
+                    let full_a = compute_file_hash_sha256(&a.absolute_path);
+                    let full_b = compute_file_hash_sha256(&b.absolute_path);
                     full_a == full_b
                 } else {
                     true
@@ -404,13 +414,48 @@ fn compute_file_hash(path: &std::path::Path) -> String {
                 let bytes_read = match reader.read(&mut buffer) {
                     Ok(0) => break,
                     Ok(n) => n,
-                    Err(_) => break,
+                    Err(e) => {
+                        eprintln!("Warning: Error reading {}: {}", path.display(), e);
+                        break;
+                    }
                 };
                 hasher.write(&buffer[..bytes_read]);
             }
             format!("{:016x}", hasher.finish())
         }
-        Err(_) => String::new(),
+        Err(e) => {
+            eprintln!("Warning: Could not open {}: {}", path.display(), e);
+            String::new()
+        }
+    }
+}
+
+fn compute_file_hash_sha256(path: &std::path::Path) -> String {
+    use std::fs::File;
+    use std::io::{BufReader, Read};
+
+    match File::open(path) {
+        Ok(file) => {
+            let mut reader = BufReader::new(file);
+            let mut hasher = Sha256::new();
+            let mut buffer = [0u8; 8192];
+            loop {
+                let bytes_read = match reader.read(&mut buffer) {
+                    Ok(0) => break,
+                    Ok(n) => n,
+                    Err(e) => {
+                        eprintln!("Warning: Error reading {}: {}", path.display(), e);
+                        break;
+                    }
+                };
+                hasher.update(&buffer[..bytes_read]);
+            }
+            format!("{:x}", hasher.finalize())
+        }
+        Err(e) => {
+            eprintln!("Warning: Could not open {}: {}", path.display(), e);
+            String::new()
+        }
     }
 }
 
@@ -427,8 +472,10 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
         match entry {
             Ok(entry) => {
                 let absolute_path = entry.path().to_path_buf();
-                // Initialize path as absolute; compare_directories will convert to relative
-                let path = absolute_path.clone();
+                let path = absolute_path
+                    .strip_prefix(&abs_base)
+                    .unwrap_or(&absolute_path)
+                    .to_path_buf();
                 let kind = if entry.file_type().is_dir() {
                     EntryKind::Directory
                 } else {
@@ -551,42 +598,11 @@ pub fn compare_directories(
     let mut b_only: Vec<Entry> = Vec::new();
     let mut both: Vec<(Entry, Entry)> = Vec::new();
 
-    let dir_a_canonical = std::fs::canonicalize(dir_a)?;
-    let dir_b_canonical = std::fs::canonicalize(dir_b)?;
+    let map_a: HashMap<PathBuf, Entry> =
+        entries_a.into_iter().map(|e| (e.path.clone(), e)).collect();
 
-    let map_a: HashMap<PathBuf, Entry> = entries_a
-        .into_iter()
-        .map(|e| {
-            let rel_path = if let Ok(stripped) = e.path.strip_prefix(&dir_a_canonical) {
-                stripped.to_path_buf()
-            } else {
-                e.path
-                    .file_name()
-                    .map(|n| PathBuf::from(n))
-                    .unwrap_or_else(|| e.path.clone())
-            };
-            let mut entry = e;
-            entry.path = rel_path.clone();
-            (rel_path, entry)
-        })
-        .collect();
-
-    let map_b: HashMap<PathBuf, Entry> = entries_b
-        .into_iter()
-        .map(|e| {
-            let rel_path = if let Ok(stripped) = e.path.strip_prefix(&dir_b_canonical) {
-                stripped.to_path_buf()
-            } else {
-                e.path
-                    .file_name()
-                    .map(|n| PathBuf::from(n))
-                    .unwrap_or_else(|| e.path.clone())
-            };
-            let mut entry = e;
-            entry.path = rel_path.clone();
-            (rel_path, entry)
-        })
-        .collect();
+    let map_b: HashMap<PathBuf, Entry> =
+        entries_b.into_iter().map(|e| (e.path.clone(), e)).collect();
 
     let keys_a: HashSet<PathBuf> = map_a.keys().cloned().collect();
     let keys_b: HashSet<PathBuf> = map_b.keys().cloned().collect();
