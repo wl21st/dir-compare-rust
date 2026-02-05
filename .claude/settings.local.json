@@ -10,7 +10,9 @@
       "Bash(git merge:*)",
       "Bash(git rm:*)",
       "Bash(git checkout:*)",
-      "Bash(cargo build:*)"
+      "Bash(cargo build:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nMerge main into feature/sampled-hash-strategy\n\nResolved conflicts from workspace restructuring \\(core/cli/gui separation\\).\nUpdated sampled-hash implementation to use new workspace structure:\n- Moved code to core/ package\n- Updated imports from dir_compare to dir_compare_core\n- Changed absolute_path field to abs_path for consistency\n- Added sha2 dependency to core package\n- Fixed all tests to work with new structure\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)"
     ]
   }
 }
