@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: Add comprehensive code review for workspace refactoring commit\n\nReviewed commit 3b02301 which adds cross-platform GUI and refactors to workspace.\n\nKey findings:\n- Excellent architecture with proper separation of concerns\n- High code quality with comprehensive documentation\n- Missing GUI tests \\(should be added\\)\n- Minor issues with theme switching and error handling\n- Overall: Approved with minor suggestions\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr view:*)"
+    ]
+  }
+}
