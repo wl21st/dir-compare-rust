@@ -16,6 +16,7 @@ dir-compare-core = { path = "core" }
 walkdir = "2.5"
 fxhash = "0.2"
 thiserror = "1.0"
+sha2 = "0.10.9"
 clap = { version = "4.4", features = ["derive"] }
 egui = "0.27"
 eframe = "0.27"

@@ -185,4 +185,58 @@ mod tests {
             "Expected nested.txt in both directories"
         );
     }
+
+    #[test]
+    fn test_sampled_hash_strategy() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Create large files
+        // size = 5000.
+        // S = 431. 2S = 862.
+        // interior = 5000 - 862 = 4138.
+        // step = 4138 / 6 = 689.
+        // Sample ranges start at:
+        // 1: 0 (end 431)
+        // 2: 431 + 689 = 1120 (start)
+        // Modification at 500 should be ignored by sampling-only.
+
+        let mut content_a = vec![b'x'; 5000];
+        let mut content_b = vec![b'x'; 5000];
+        content_b[500] = b'y'; // Modification in gap between Sample 1 and 2
+
+        let dir_a =
+            create_test_dir_with_files(temp_dir.path(), "dir_a", &[("large.bin", &content_a)]);
+        let dir_b =
+            create_test_dir_with_files(temp_dir.path(), "dir_b", &[("large.bin", &content_b)]);
+
+        // 1. Sampling only -> Should Match
+        let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+        assert_eq!(
+            result.both.len(),
+            1,
+            "Sampling only should match despite difference in unsampled region"
+        );
+
+        // 2. Verify on match -> Should NOT Match
+        let strategy_verify = dir_compare_core::SampledHashStrategy::new(false, true);
+        let result_verify =
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy_verify).unwrap();
+        assert_eq!(
+            result_verify.both.len(),
+            0,
+            "Verify on match should detect difference"
+        );
+        assert_eq!(result_verify.a_only.len(), 1);
+        assert_eq!(result_verify.b_only.len(), 1);
+
+        // 3. Small files -> Full read always
+        let dir_c = create_test_dir_with_files(temp_dir.path(), "dir_c", &[("small.txt", b"abc")]);
+        let dir_d = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_d",
+            &[("small.txt", b"abd")], // diff
+        );
+        let result_small = dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
+        assert_eq!(result_small.both.len(), 0, "Small files should differ");
+    }
 }
