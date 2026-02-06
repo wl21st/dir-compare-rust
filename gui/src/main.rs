@@ -2,7 +2,7 @@ mod tree_view;
 
 use dir_compare_core::{
     compare_directories, ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry,
-    FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy,
+    FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy,
 };
 use eframe::egui;
 use std::io::{Read, Write};
@@ -298,6 +298,7 @@ impl eframe::App for DirCompareApp {
                         ComparisonStrategyType::Filename => "Filename",
                         ComparisonStrategyType::FilenameSize => "Filename & Size",
                         ComparisonStrategyType::FastHash => "Content Hash",
+                        ComparisonStrategyType::SampledHash => "Sampled Hash",
                     })
                     .show_ui(ui, |ui| {
                         ui.selectable_value(
@@ -314,6 +315,11 @@ impl eframe::App for DirCompareApp {
                             &mut self.state.comparison_method,
                             ComparisonStrategyType::FastHash,
                             "Content Hash",
+                        );
+                        ui.selectable_value(
+                            &mut self.state.comparison_method,
+                            ComparisonStrategyType::SampledHash,
+                            "Sampled Hash",
                         );
                     });
             });
@@ -356,6 +362,9 @@ impl eframe::App for DirCompareApp {
                             }
                             ComparisonStrategyType::FastHash => {
                                 Box::new(FastHashStrategy::new(false))
+                            }
+                            ComparisonStrategyType::SampledHash => {
+                                Box::new(SampledHashStrategy::new(false, true))
                             }
                         };
 
