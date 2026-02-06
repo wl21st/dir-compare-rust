@@ -91,7 +91,7 @@
 - [x] 10.3 Wire theme selection to egui::Style changes
 - [x] 10.4 Define light theme colors (background, text, accents)
 - [x] 10.5 Define dark theme colors (background, text, accents)
-- [ ] 10.6 Persist theme preference to local storage
+- [x] 10.6 Persist theme preference to local storage
 - [x] 10.7 Apply theme on application startup
 
 ## 11. Cross-Platform Testing

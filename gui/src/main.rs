@@ -5,8 +5,47 @@ use dir_compare_core::{
     FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy,
 };
 use eframe::egui;
+use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
 use tree_view::FileTreeNode;
+
+const APP_NAME: &str = "dir-compare";
+const THEME_CONFIG_FILE: &str = "theme.txt";
+
+fn get_config_dir() -> Option<PathBuf> {
+    dirs::config_dir().map(|dir| dir.join(APP_NAME))
+}
+
+fn get_theme_config_path() -> Option<PathBuf> {
+    get_config_dir().map(|dir| dir.join(THEME_CONFIG_FILE))
+}
+
+fn load_theme() -> Option<Theme> {
+    let path = get_theme_config_path()?;
+    let mut file = std::fs::File::open(path).ok()?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).ok()?;
+    Theme::from_str(contents.trim())
+}
+
+fn save_theme(theme: Theme) {
+    if let Some(config_dir) = get_config_dir() {
+        if let Err(e) = std::fs::create_dir_all(&config_dir) {
+            eprintln!("Failed to create config directory: {}", e);
+            return;
+        }
+        let path = config_dir.join(THEME_CONFIG_FILE);
+        match std::fs::File::create(&path) {
+            Ok(mut file) => {
+                if let Err(e) = file.write_all(theme.as_str().as_bytes()) {
+                    eprintln!("Failed to write theme config: {}", e);
+                }
+            }
+            Err(e) => eprintln!("Failed to create theme config file: {}", e),
+        }
+    }
+}
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -15,10 +54,18 @@ fn main() -> eframe::Result<()> {
             .with_title("dir-compare"),
         ..Default::default()
     };
+
+    // Load saved theme or use System default
+    let saved_theme = load_theme().unwrap_or(Theme::System);
+
     eframe::run_native(
         "dir-compare",
         options,
-        Box::new(|_cc| Box::new(DirCompareApp::default())),
+        Box::new(move |cc| {
+            // Apply saved theme on startup
+            cc.egui_ctx.set_visuals(saved_theme.to_visuals());
+            Box::new(DirCompareApp::new(saved_theme))
+        }),
     )
 }
 
@@ -40,19 +87,49 @@ struct TreeCache {
     both: Vec<FileTreeNode>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 enum Theme {
     Light,
     Dark,
     System,
 }
 
+impl Theme {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Theme::Light => "light",
+            Theme::Dark => "dark",
+            Theme::System => "system",
+        }
+    }
+
+    fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "light" => Some(Theme::Light),
+            "dark" => Some(Theme::Dark),
+            "system" => Some(Theme::System),
+            _ => None,
+        }
+    }
+
+    fn to_visuals(&self) -> egui::Visuals {
+        match self {
+            Theme::Light => egui::Visuals::light(),
+            Theme::Dark => egui::Visuals::dark(),
+            Theme::System => {
+                // Use dark as default for system since we can't easily detect system theme
+                egui::Visuals::dark()
+            }
+        }
+    }
+}
+
 struct DirCompareApp {
     state: AppState,
 }
 
-impl Default for DirCompareApp {
-    fn default() -> Self {
+impl DirCompareApp {
+    fn new(initial_theme: Theme) -> Self {
         Self {
             state: AppState {
                 dir_a_path: String::new(),
@@ -60,7 +137,7 @@ impl Default for DirCompareApp {
                 comparison_method: ComparisonStrategyType::Filename,
                 results: None,
                 tree_cache: None,
-                theme: Theme::System,
+                theme: initial_theme,
                 is_comparing: false,
                 comparison_receiver: None,
                 error_message: None,
@@ -114,30 +191,31 @@ impl eframe::App for DirCompareApp {
                 });
                 ui.menu_button("View", |ui| {
                     ui.menu_button("Theme", |ui| {
-                        let mut theme_changed = false;
+                        let old_theme = self.state.theme;
                         if ui
                             .radio_value(&mut self.state.theme, Theme::Light, "Light")
                             .clicked()
                         {
                             ctx.set_visuals(egui::Visuals::light());
-                            theme_changed = true;
+                            save_theme(Theme::Light);
                         }
                         if ui
                             .radio_value(&mut self.state.theme, Theme::Dark, "Dark")
                             .clicked()
                         {
                             ctx.set_visuals(egui::Visuals::dark());
-                            theme_changed = true;
+                            save_theme(Theme::Dark);
                         }
                         if ui
                             .radio_value(&mut self.state.theme, Theme::System, "System")
                             .clicked()
                         {
-                            // System default is tricky to reset perfectly without reload,
-                            // but we can try to detect or just default to dark for dev.
-                            // Ideally we shouldn't have set_visuals if System.
-                            // For now, let's just leave it as is or toggle.
-                            theme_changed = true;
+                            // System default - use dark as fallback since we can't easily detect
+                            ctx.set_visuals(egui::Visuals::dark());
+                            save_theme(Theme::System);
+                        }
+                        if old_theme != self.state.theme {
+                            ui.close_menu();
                         }
                     });
                 });
