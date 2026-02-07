@@ -17,6 +17,14 @@
 - `cargo test`: Run the full test suite (unit + integration).
 - `cargo clippy`: Run the Rust linter (if installed) to catch common issues.
 
+## Test Coverage Commands
+- **Install tarpaulin**: `cargo install cargo-tarpaulin`
+- **Run coverage**: `cargo tarpaulin --workspace --out Html --output-dir target/coverage`
+- **View coverage report**: Open `target/coverage/tarpaulin-report.html` in a browser
+- **Coverage configuration**: `.tarpaulin.toml` contains settings for coverage generation
+- **Coverage outputs**: HTML, XML (Cobertura), and LCOV formats in `target/coverage/`
+- **Example**: `cargo tarpaulin --package dir-compare-core --out Html` for single package coverage
+
 ## Coding Style & Naming Conventions
 - Rust 2024 edition; follow standard Rust formatting (4-space indentation).
 - Keep modules focused: comparison logic in `comparison.rs`, output concerns in `output.rs`.

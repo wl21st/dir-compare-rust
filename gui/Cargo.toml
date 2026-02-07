@@ -14,3 +14,6 @@ egui.workspace = true
 eframe.workspace = true
 rfd.workspace = true
 dirs.workspace = true
+
+[dev-dependencies]
+tempfile = "3.8"

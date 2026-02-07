@@ -1,3 +1,21 @@
-target
-temp_install
-.idea
+# Build artifacts
+target/
+temp_install/
+
+# Git Worktrees
+.worktrees/
+worktrees/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+tarpaulin_report.html

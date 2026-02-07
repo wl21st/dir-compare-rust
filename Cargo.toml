@@ -25,3 +25,8 @@ dirs = "5.0"
 tempfile = "3.8"
 assert_cmd = "2.0"
 predicates = "3.0"
+
+[workspace.metadata.coverage]
+tool = "tarpaulin"
+output-formats = ["Html", "Xml", "Lcov"]
+output-dir = "target/coverage"

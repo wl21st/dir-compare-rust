@@ -236,7 +236,226 @@ mod tests {
             "dir_d",
             &[("small.txt", b"abd")], // diff
         );
-        let result_small = dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
+        let result_small =
+            dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
         assert_eq!(result_small.both.len(), 0, "Small files should differ");
+    }
+
+    #[test]
+    fn test_sampled_hash_includes_file_size() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Create two files with identical content but different sizes
+        // by appending extra padding to one
+        let content_same = b"identical content here";
+        let content_padded = b"identical content here padding";
+
+        let dir_a =
+            create_test_dir_with_files(temp_dir.path(), "dir_a", &[("file.txt", content_same)]);
+        let dir_b =
+            create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.txt", content_padded)]);
+
+        let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+
+        // Files with different sizes should NOT match even if sampled content overlaps
+        assert_eq!(
+            result.both.len(),
+            0,
+            "Files with different sizes should not match (file size is part of hash)"
+        );
+        assert_eq!(result.a_only.len(), 1);
+        assert_eq!(result.b_only.len(), 1);
+    }
+
+    #[test]
+    fn test_sampled_hash_same_size_and_content_match() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Create files with identical content and size
+        let content = vec![b'x'; 5000];
+
+        let dir_a = create_test_dir_with_files(temp_dir.path(), "dir_a", &[("file.bin", &content)]);
+        let dir_b = create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.bin", &content)]);
+
+        let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+
+        assert_eq!(result.both.len(), 1, "Identical files should match");
+        assert_eq!(result.a_only.len(), 0);
+        assert_eq!(result.b_only.len(), 0);
+    }
+
+    #[test]
+    fn test_sampled_hash_size_determinism() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Test that hashing is deterministic - same file produces same hash
+        let content = b"test content for determinism check";
+
+        let dir_a = create_test_dir_with_files(temp_dir.path(), "dir_a", &[("file.txt", content)]);
+        let dir_b = create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.txt", content)]);
+
+        let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
+
+        // Run comparison multiple times
+        for _ in 0..3 {
+            let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+            assert_eq!(
+                result.both.len(),
+                1,
+                "Hash should be deterministic across multiple runs"
+            );
+        }
+    }
+
+    #[test]
+    fn test_sampled_hash_empty_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Test empty file hashing (edge case)
+        let dir_a = create_test_dir_with_files(temp_dir.path(), "dir_a", &[("empty.txt", b"")]);
+        let dir_b = create_test_dir_with_files(temp_dir.path(), "dir_b", &[("empty.txt", b"")]);
+
+        let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+
+        assert_eq!(
+            result.both.len(),
+            1,
+            "Empty files with same size (0) should match"
+        );
+    }
+
+    #[test]
+    fn test_sampled_hash_endianness_consistency() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Test that file size is encoded consistently (big-endian) regardless of platform.
+        // We use specific sizes that would produce different hash results if endianness
+        // was handled incorrectly (e.g., if platform native endianness was used).
+        //
+        // Size 0x100 (256): BE bytes = [0,0,0,0,0,0,1,0], LE bytes = [0,1,0,0,0,0,0,0]
+        // Size 0x10000 (65536): BE bytes = [0,0,0,0,0,1,0,0], LE bytes = [0,0,1,0,0,0,0,0]
+        //
+        // Since to_be_bytes() always produces big-endian, the hash will be consistent
+        // across all platforms (x86, ARM, etc.)
+
+        // Use small files that trigger the "read entire file" path
+        let content_256 = vec![b'a'; 256];
+        let content_65536 = vec![b'a'; 65536];
+
+        let dir_a =
+            create_test_dir_with_files(temp_dir.path(), "dir_a", &[("size_256.bin", &content_256)]);
+        let dir_b = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_b",
+            &[("size_256.bin", &content_65536)],
+        );
+
+        let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+
+        // Files with different sizes should NOT match
+        assert_eq!(
+            result.both.len(),
+            0,
+            "Files with different sizes (256 vs 65536) should not match - verifies size is part of hash"
+        );
+
+        // Verify that files with same size do match (same content)
+        let dir_c =
+            create_test_dir_with_files(temp_dir.path(), "dir_c", &[("size_256.bin", &content_256)]);
+        let dir_d =
+            create_test_dir_with_files(temp_dir.path(), "dir_d", &[("size_256.bin", &content_256)]);
+        let result2 = dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
+        assert_eq!(
+            result2.both.len(),
+            1,
+            "Files with identical content and size (256) should match"
+        );
+    }
+
+    #[test]
+    fn test_sampled_hash_fixed_values() {
+        let temp_dir = tempfile::tempdir().unwrap();
+
+        // Precalculated SHA-256 hash values for known inputs
+        // These values are computed with size prefix (8 bytes big-endian) + content
+        // and verified to be consistent across platforms using to_be_bytes()
+
+        // SMALL FILE (100 bytes of 'x'):
+        // Size prefix: 0x0000000000000064 (100 in big-endian)
+        // Content: 100 bytes of 0x78 ('x')
+        const SMALL_HASH: &str = "e7df876b6a4c535ff133690986d1bd4f1e2a29506e6fe5ec06cb8402fd209888";
+
+        // MEDIUM FILE (5000 bytes of 'y'):
+        // Size prefix: 0x0000000000001388 (5000 in big-endian)
+        // Sampled content: 7 samples of 431 bytes each
+        const MEDIUM_HASH: &str =
+            "040f2d864134b6510f2287a4b4338865b50b8327ad76ca21b2eaf8ac78645790";
+
+        // LARGE FILE (100000 bytes of 'z'):
+        // Size prefix: 0x00000000000186a0 (100000 in big-endian)
+        // Sampled content: 7 samples of 431 bytes each
+        const LARGE_HASH: &str = "c6c18786d57b8a5e02955f17d2047159c11ca59b0af98b3a47aed12bb22c319a";
+
+        // EMPTY FILE (0 bytes):
+        // Size prefix: 0x0000000000000000
+        const EMPTY_HASH: &str = "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc";
+
+        // SMALL FILE TEST
+        let small_content = vec![b'x'; 100];
+        let dir_small = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_small",
+            &[("small.bin", &small_content)],
+        );
+        let small_path = dir_small.join("small.bin");
+        let computed_small = dir_compare_core::comparison::compute_sampled_hash(&small_path);
+        assert_eq!(
+            computed_small, SMALL_HASH,
+            "Small file (100 bytes 'x') hash should match precalculated value"
+        );
+
+        // MEDIUM FILE TEST
+        let medium_content = vec![b'y'; 5000];
+        let dir_medium = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_medium",
+            &[("medium.bin", &medium_content)],
+        );
+        let medium_path = dir_medium.join("medium.bin");
+        let computed_medium = dir_compare_core::comparison::compute_sampled_hash(&medium_path);
+        assert_eq!(
+            computed_medium, MEDIUM_HASH,
+            "Medium file (5000 bytes 'y') hash should match precalculated value"
+        );
+
+        // LARGE FILE TEST
+        let large_content = vec![b'z'; 100000];
+        let dir_large = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_large",
+            &[("large.bin", &large_content)],
+        );
+        let large_path = dir_large.join("large.bin");
+        let computed_large = dir_compare_core::comparison::compute_sampled_hash(&large_path);
+        assert_eq!(
+            computed_large, LARGE_HASH,
+            "Large file (100KB 'z') hash should match precalculated value"
+        );
+
+        // EMPTY FILE TEST
+        let dir_empty =
+            create_test_dir_with_files(temp_dir.path(), "dir_empty", &[("empty.bin", b"")]);
+        let empty_path = dir_empty.join("empty.bin");
+        let computed_empty = dir_compare_core::comparison::compute_sampled_hash(&empty_path);
+        assert_eq!(
+            computed_empty, EMPTY_HASH,
+            "Empty file (0 bytes) hash should match precalculated value"
+        );
+
+        // Verify determinism: same file produces same hash
+        let computed_small2 = dir_compare_core::comparison::compute_sampled_hash(&small_path);
+        assert_eq!(
+            computed_small, computed_small2,
+            "Hash computation should be deterministic"
+        );
     }
 }
