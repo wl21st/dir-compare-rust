@@ -199,7 +199,7 @@ mod tests {
         // 2: 431 + 689 = 1120 (start)
         // Modification at 500 should be ignored by sampling-only.
 
-        let mut content_a = vec![b'x'; 5000];
+        let content_a = vec![b'x'; 5000];
         let mut content_b = vec![b'x'; 5000];
         content_b[500] = b'y'; // Modification in gap between Sample 1 and 2
 

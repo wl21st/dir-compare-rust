@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use dir_compare_core::compare_directories;
-    use dir_compare_core::comparison::{ComparisonStrategy, FastHashStrategy};
+    use dir_compare_core::comparison::FastHashStrategy;
     use std::fs::{self, File};
     use std::io::Write;
     use std::path::{Path, PathBuf};

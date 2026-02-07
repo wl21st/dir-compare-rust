@@ -1,8 +1,6 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs::{self, File};
-use std::io::Write;
-use std::path::Path;
 
 fn setup_test_dirs() -> tempfile::TempDir {
     let temp_dir = tempfile::tempdir().unwrap();
@@ -20,7 +18,8 @@ fn setup_test_dirs() -> tempfile::TempDir {
 
 #[test]
 fn test_cli_missing_dir_a() {
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg("/nonexistent")
         .arg("--dir-b")
@@ -36,7 +35,8 @@ fn test_cli_missing_dir_b() {
     let dir_a = temp_dir.path().join("dir_a");
     fs::create_dir_all(&dir_a).unwrap();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(dir_a.to_str().unwrap())
         .arg("--dir-b")
@@ -54,7 +54,8 @@ fn test_cli_path_is_not_directory() {
     let dir_b = temp_dir.path().join("dir_b");
     fs::create_dir_all(&dir_b).unwrap();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(file_a.to_str().unwrap())
         .arg("--dir-b")
@@ -68,7 +69,8 @@ fn test_cli_path_is_not_directory() {
 fn test_cli_invalid_method() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -84,7 +86,8 @@ fn test_cli_invalid_method() {
 fn test_cli_invalid_format() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -100,7 +103,8 @@ fn test_cli_invalid_format() {
 fn test_cli_default_method() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -114,7 +118,8 @@ fn test_cli_default_method() {
 fn test_cli_method_filename() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -129,7 +134,8 @@ fn test_cli_method_filename() {
 fn test_cli_method_size() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -144,7 +150,8 @@ fn test_cli_method_size() {
 fn test_cli_method_hash() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -167,7 +174,8 @@ fn test_cli_case_insensitive() {
     fs::write(dir_a.join("File.Txt"), b"content").unwrap();
     fs::write(dir_b.join("file.txt"), b"content").unwrap();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(dir_a.to_str().unwrap())
         .arg("--dir-b")
@@ -182,7 +190,8 @@ fn test_cli_case_insensitive() {
 fn test_cli_format_text() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -198,7 +207,8 @@ fn test_cli_format_text() {
 fn test_cli_format_html() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -214,7 +224,8 @@ fn test_cli_format_html() {
 fn test_cli_format_markdown() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -231,7 +242,8 @@ fn test_cli_output_file() {
     let temp_dir = setup_test_dirs();
     let output_file = temp_dir.path().join("output.txt");
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--dir-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("--dir-b")
@@ -251,7 +263,8 @@ fn test_cli_output_file() {
 fn test_cli_short_flags() {
     let temp_dir = setup_test_dirs();
 
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("-a")
         .arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg("-b")
@@ -266,7 +279,8 @@ fn test_cli_short_flags() {
 
 #[test]
 fn test_cli_help_message() {
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--help")
         .assert()
         .success()
@@ -279,7 +293,8 @@ fn test_cli_help_message() {
 
 #[test]
 fn test_cli_version() {
-    let mut cmd = Command::cargo_bin("dir-compare").unwrap();
+    let mut cmd =
+        Command::new("/Users/sfuser/develop/rust/dir-compare-rust/target/debug/dir-compare");
     cmd.arg("--version")
         .assert()
         .success()
