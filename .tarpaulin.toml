@@ -1,241 +1,39 @@
-[features]
-# Enable coverage-friendly features
-default = []
+# Tarpaulin code coverage configuration
+# For full options, see: https://github.com/xd009642/tarpaulin#configuration
 
 [report]
-# Output formats
+# Output formats: HTML for viewing, XML for CI, LCOV for editors
 out = ["Html", "Xml", "Lcov"]
-
-# Coverage output directory
 output-dir = "target/coverage"
 
-# Run tests
-run-types = ["Tests"]
-
-# Exclude directories from coverage
-exclude-files = ["target/*", "**/tests/*", "**/test_*"]
-
-# Fail if coverage is below threshold
-fail-under = 0
-
-# Line coverage
-line-coverage = true
-
-# Branch coverage  
-branch-coverage = true
-
-# Include test functions in coverage
-include-tests = false
-
-# Count hits per line (for more detailed reports)
-count = true
-
-# Engine to use (llvm is more accurate but requires nightly)
+# Use LLVM engine for more accurate coverage (requires nightly Rust)
 engine = "Llvm"
 
-# Timeout for tests (in seconds)
+# Timeout for tests (5 minutes)
 timeout = "300"
 
-# Don't clean the build artifacts before running
-clean = false
-
-# Verbose output
-verbose = false
-
-# Don't fail on test failures
-no-fail-fast = false
-
-# Follow unused code paths
-follow-exec = false
-
-# Forward signals to test executables
-forward-signals = true
-
-# Workspace packages to include
+# Run coverage for all workspace packages
 workspace = true
 
-# Exclude specific packages
-exclude = []
+# Exclude test files from coverage reports
+exclude-files = ["target/*", "**/tests/*", "**/test_*"]
 
-# Test threads
-# test-threads = "num-cpus"
-
-# Manifest path
-manifest-path = "./Cargo.toml"
-
-# Target directory
-target-dir = "target/coverage"
-
-# Features to enable
-features = ""
-
-# Don't default features
-no-default-features = false
-
-# All features
-all-features = false
-
-# Target triple
-target = ""
-
-# Offline mode
-offline = false
-
-# Frozen mode
-frozen = false
-
-# Locked mode
-locked = false
-
-# Ignore panic macros
-ignore-panics = false
-
-# Ignore tests
+# Don't include test functions in coverage
 ignore-tests = true
 
-# Line numbers
-line-numbers = true
+# Show detailed line and branch coverage
+line-coverage = true
+branch-coverage = true
+count = true
 
-# Print uncovered lines
+# Report missing coverage
+show-missing = true
 uncovered-lines = true
-
-# Print uncovered functions
 uncovered-functions = true
-
-# Print uncovered regions
 uncovered-regions = true
 
-# Print covered lines
-covered-lines = false
-
-# Print covered functions
-covered-functions = false
-
-# Print covered regions
-covered-regions = false
-
-# Show missing lines in summary
-show-missing = true
-
-# Skip clean
+# Skip cleaning to speed up reruns
 skip-clean = true
 
-# Force clean
-force-clean = false
-
-# Only build
-build-only = false
-
-# Don't run tests
-dry-run = false
-
-# Print command
-dump-traces = false
-
-# Print test binary args
-test-args = []
-
-# Avoid linking dead code
-avoid-cfg-tarpaulin = false
-
-# Exclude files by regex
-exclude-files-regex = []
-
-# Include only specific files
-include-files = []
-
-# Post-test script
-post-test-script = ""
-
-# Object file
-object = ""
-
-# LLVM profile path
-llvm-profile-path = ""
-
-# LLVM profile mode
-llvm-profile-mode = "default"
-
-# Coveralls service name
-coveralls = ""
-
-# Coveralls service job ID
-coveralls-job-id = ""
-
-# Report URI
-report-uri = ""
-
-# CI service
-ci-tool = ""
-
-# Debug info
-debug = false
-
-# Log level
-log-level = ""
-
-# Config file
-config = ""
-
-# Print version
-version = false
-
-# Print help
-help = false
-
-# Packages to run
-tests = []
-
-# Examples to run
-examples = []
-
-# Benchmarks to run
-benchmarks = []
-
-# Bins to run
-bins = []
-
-# Libs to run
-libs = []
-
-# All targets
-all-targets = false
-
-# No deps
-no-deps = false
-
-# Z flags
-z = []
-
-# Cap lints
-cap-lints = ""
-
-# Allow warnings
+# Allow warnings during coverage builds
 allow-warnings = true
-
-# Jobs
-jobs = ""
-
-# Profile
-profile = "test"
-
-# Release
-release = false
-
-# Target CPU
-target-cpu = ""
-
-# Target feature
-target-feature = ""
-
-# RUSTFLAGS
-rustflags = ""
-
-# RUSTDOCFLAGS
-rustdocflags = ""
-
-# Verbose build
-verbose-build = false
-
-# Message format
-message-format = ""

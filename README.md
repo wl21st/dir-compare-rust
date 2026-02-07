@@ -88,6 +88,11 @@ Matches files with the same name AND identical sampled content hash.
 Fast for large files as it reads small samples (default 7 samples of 431 bytes).
 Use `--verify` to verify matches with full content hash.
 
+**Note**: The sampled hash includes the file size as part of the hash computation to prevent
+false positives. This ensures that files with different sizes will never match, even if their
+sampled content overlaps. This is particularly important when comparing files where one might
+be a prefix or subset of another.
+
 ### Case-Insensitive Comparison
 
 Compare filenames without regard to case:
@@ -366,12 +371,29 @@ cargo test --package dir-compare-gui --lib
 The GUI tests use mocked dependencies and temporary directories, so they can run headlessly:
 
 ```bash
-# This runs all tests without opening any GUI windows
+# Run all non-ignored tests without opening any GUI windows
 cargo test --package dir-compare-gui -- --nocapture
-
-# Note: Theme persistence tests share a config file
-# Run them serially to avoid conflicts: cargo test --package dir-compare-gui -- --test-threads=1
 ```
+
+### Running Slow Tests
+
+Some tests are marked with `#[ignore]` because they are slow or require special handling:
+
+```bash
+# Run only ignored tests (slow tests, theme tests)
+cargo test --package dir-compare-gui -- --ignored
+
+# Run theme tests serially to avoid config file conflicts
+cargo test --package dir-compare-gui test_theme -- --ignored --test-threads=1
+
+# Run ALL tests (including ignored ones)
+cargo test --package dir-compare-gui -- --include-ignored
+```
+
+Ignored tests include:
+- **Deep nesting test**: Creates 100-level directory structure
+- **Performance test**: Creates 100 files and measures comparison time
+- **Theme persistence tests**: Share config state and should run with `--test-threads=1`
 
 ### Test Coverage
 

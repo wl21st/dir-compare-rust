@@ -311,9 +311,43 @@ const SAMPLE_COUNT: u64 = 7;
 
 /// Compute sampled hash for a file
 ///
-/// This function is exposed for testing purposes. It computes a SHA-256 hash
-/// of the file with a size prefix (8 bytes, big-endian) followed by either
-/// the entire file content (for small files) or sampled content (for large files).
+/// This function computes a SHA-256 hash using a hybrid approach that balances
+/// accuracy with performance:
+///
+/// # Hash Composition
+///
+/// The hash includes two components:
+/// 1. **File size prefix** (8 bytes, big-endian): Ensures files of different sizes
+///    produce different hashes, even if sampled content might overlap. This prevents
+///    false positives when comparing files where one is a prefix/subset of another.
+/// 2. **Content hash**: Either full content (small files) or sampled content (large files)
+///
+/// # Sampling Strategy
+///
+/// - **Small files** (< 3,017 bytes): Hash entire file content
+/// - **Large files** (≥ 3,017 bytes): Hash 7 samples of 431 bytes each, evenly distributed
+///
+/// # Why Include File Size?
+///
+/// Without the size prefix, two files could incorrectly match if:
+/// - File A contains: "content123"
+/// - File B contains: "content123padding"
+/// - Samples from both files might read identical bytes from the "content123" portion
+///
+/// Including the size prefix ensures that files with different lengths will never produce
+/// identical hashes, maintaining correctness while still benefiting from sampling performance.
+///
+/// # Usage
+///
+/// This function is exposed for testing purposes.
+///
+/// # Example
+///
+/// ```ignore
+/// use std::path::Path;
+/// let hash = compute_sampled_hash(Path::new("large_file.bin"));
+/// println!("Sampled hash: {}", hash);
+/// ```
 #[doc(hidden)]
 pub fn compute_sampled_hash(path: &Path) -> String {
     _compute_sampled_hash_internal(path)
