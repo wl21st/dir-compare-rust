@@ -122,7 +122,6 @@ mod tests {
 
     #[test]
     fn test_load_save_theme_with_temp_dir() {
-        use std::env;
         use tempfile::TempDir;
 
         // Create a temp directory for config

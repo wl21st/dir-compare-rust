@@ -2,30 +2,8 @@ use dir_compare_core::{
     ComparisonStrategyType, FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy,
     SampledHashStrategy, compare_directories,
 };
+use dir_compare_gui::test_utils::create_test_dir_structure;
 use std::path::Path;
-use tempfile::TempDir;
-
-/// Helper function to create test directory structure
-fn create_test_dir_structure() -> (TempDir, TempDir) {
-    let dir_a = TempDir::new().expect("Failed to create temp dir A");
-    let dir_b = TempDir::new().expect("Failed to create temp dir B");
-
-    // Directory A only files
-    std::fs::write(dir_a.path().join("a_only.txt"), "content A").unwrap();
-    std::fs::create_dir(dir_a.path().join("a_only_dir")).unwrap();
-    std::fs::write(dir_a.path().join("a_only_dir/nested.txt"), "nested A").unwrap();
-
-    // Directory B only files
-    std::fs::write(dir_b.path().join("b_only.txt"), "content B").unwrap();
-    std::fs::create_dir(dir_b.path().join("b_only_dir")).unwrap();
-    std::fs::write(dir_b.path().join("b_only_dir/nested.txt"), "nested B").unwrap();
-
-    // Common files with same content
-    std::fs::write(dir_a.path().join("common.txt"), "common content").unwrap();
-    std::fs::write(dir_b.path().join("common.txt"), "common content").unwrap();
-
-    (dir_a, dir_b)
-}
 
 /// Tests for comparison method workflows through the GUI
 /// These tests verify that the correct comparison strategies are used
