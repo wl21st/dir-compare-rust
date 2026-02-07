@@ -328,6 +328,62 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## Testing
+
+### Running Tests
+
+To run all tests:
+
+```bash
+cargo test --workspace
+```
+
+### Running GUI Tests
+
+The GUI has its own test suite:
+
+```bash
+# Run all GUI tests
+cargo test --package dir-compare-gui
+
+# Run specific test files
+cargo test --package dir-compare-gui --test directory_selection_tests
+cargo test --package dir-compare-gui --test comparison_method_tests
+cargo test --package dir-compare-gui --test results_display_tests
+cargo test --package dir-compare-gui --test corner_case_tests
+```
+
+### Running Unit Tests Only
+
+To run only unit tests (without integration tests):
+
+```bash
+cargo test --package dir-compare-gui --lib
+```
+
+### Headless Testing
+
+The GUI tests use mocked dependencies and temporary directories, so they can run headlessly:
+
+```bash
+# This runs all tests without opening any GUI windows
+cargo test --package dir-compare-gui -- --nocapture
+
+# Note: Theme persistence tests share a config file
+# Run them serially to avoid conflicts: cargo test --package dir-compare-gui -- --test-threads=1
+```
+
+### Test Coverage
+
+To check test coverage (requires cargo-tarpaulin):
+
+```bash
+cargo install cargo-tarpaulin
+cargo tarpaulin --package dir-compare-gui --out Html --output-dir target/coverage
+```
+
+Then open `target/coverage/tarpaulin-report.html` to view the coverage report.
+
 ## License
 
 MIT License - see LICENSE file for details.

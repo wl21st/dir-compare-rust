@@ -309,7 +309,17 @@ const SAMPLE_SIZE: u64 = 431;
 /// detection accuracy with I/O efficiency.
 const SAMPLE_COUNT: u64 = 7;
 
-fn compute_sampled_hash(path: &Path) -> String {
+/// Compute sampled hash for a file
+///
+/// This function is exposed for testing purposes. It computes a SHA-256 hash
+/// of the file with a size prefix (8 bytes, big-endian) followed by either
+/// the entire file content (for small files) or sampled content (for large files).
+#[doc(hidden)]
+pub fn compute_sampled_hash(path: &Path) -> String {
+    _compute_sampled_hash_internal(path)
+}
+
+fn _compute_sampled_hash_internal(path: &Path) -> String {
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom};
 
@@ -334,7 +344,10 @@ fn compute_sampled_hash(path: &Path) -> String {
         }
     };
 
+    // File size is u64 which is exactly 8 bytes, so no overflow check needed
+    // Add file size (8 bytes, big-endian) to the beginning of the hash
     let mut hasher = Sha256::new();
+    hasher.update(size.to_be_bytes());
 
     if size < SAMPLE_COUNT * SAMPLE_SIZE {
         // File is smaller than total sample size, read entire file
@@ -404,8 +417,8 @@ impl ComparisonStrategy for SampledHashStrategy {
         match (&a.kind, &b.kind) {
             (EntryKind::Directory, EntryKind::Directory) => true,
             (EntryKind::File, EntryKind::File) => {
-                let hash_a = compute_sampled_hash(&a.abs_path);
-                let hash_b = compute_sampled_hash(&b.abs_path);
+                let hash_a = _compute_sampled_hash_internal(&a.abs_path);
+                let hash_b = _compute_sampled_hash_internal(&b.abs_path);
 
                 if hash_a != hash_b {
                     false

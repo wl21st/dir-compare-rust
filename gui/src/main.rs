@@ -1,51 +1,16 @@
-mod tree_view;
+use dir_compare_gui::{
+    dialog::{FileDialogProvider, NativeFileDialog},
+    theme::{Theme, load_theme, save_theme},
+    tree_view, validate_path,
+};
 
 use dir_compare_core::{
-    compare_directories, ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry,
-    FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy,
+    ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry, FastHashStrategy,
+    FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy, compare_directories,
 };
 use eframe::egui;
-use std::io::{Read, Write};
-use std::path::PathBuf;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{Receiver, channel};
 use tree_view::FileTreeNode;
-
-const APP_NAME: &str = "dir-compare";
-const THEME_CONFIG_FILE: &str = "theme.txt";
-
-fn get_config_dir() -> Option<PathBuf> {
-    dirs::config_dir().map(|dir| dir.join(APP_NAME))
-}
-
-fn get_theme_config_path() -> Option<PathBuf> {
-    get_config_dir().map(|dir| dir.join(THEME_CONFIG_FILE))
-}
-
-fn load_theme() -> Option<Theme> {
-    let path = get_theme_config_path()?;
-    let mut file = std::fs::File::open(path).ok()?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).ok()?;
-    Theme::from_str(contents.trim())
-}
-
-fn save_theme(theme: Theme) {
-    if let Some(config_dir) = get_config_dir() {
-        if let Err(e) = std::fs::create_dir_all(&config_dir) {
-            eprintln!("Failed to create config directory: {}", e);
-            return;
-        }
-        let path = config_dir.join(THEME_CONFIG_FILE);
-        match std::fs::File::create(&path) {
-            Ok(mut file) => {
-                if let Err(e) = file.write_all(theme.as_str().as_bytes()) {
-                    eprintln!("Failed to write theme config: {}", e);
-                }
-            }
-            Err(e) => eprintln!("Failed to create theme config file: {}", e),
-        }
-    }
-}
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -69,63 +34,29 @@ fn main() -> eframe::Result<()> {
     )
 }
 
-struct AppState {
-    dir_a_path: String,
-    dir_b_path: String,
-    comparison_method: ComparisonStrategyType,
-    results: Option<ComparisonResult>,
-    tree_cache: Option<TreeCache>,
-    theme: Theme,
-    is_comparing: bool,
-    comparison_receiver: Option<Receiver<Result<ComparisonResult, String>>>,
-    error_message: Option<String>,
+/// Application state that can be inspected and modified by tests
+pub struct AppState {
+    pub dir_a_path: String,
+    pub dir_b_path: String,
+    pub comparison_method: ComparisonStrategyType,
+    pub results: Option<ComparisonResult>,
+    pub tree_cache: Option<TreeCache>,
+    pub theme: Theme,
+    pub is_comparing: bool,
+    pub comparison_receiver: Option<Receiver<Result<ComparisonResult, String>>>,
+    pub error_message: Option<String>,
 }
 
-struct TreeCache {
-    a_only: Vec<FileTreeNode>,
-    b_only: Vec<FileTreeNode>,
-    both: Vec<FileTreeNode>,
+/// Cached tree view data for displaying comparison results
+pub struct TreeCache {
+    pub a_only: Vec<FileTreeNode>,
+    pub b_only: Vec<FileTreeNode>,
+    pub both: Vec<FileTreeNode>,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
-enum Theme {
-    Light,
-    Dark,
-    System,
-}
-
-impl Theme {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Theme::Light => "light",
-            Theme::Dark => "dark",
-            Theme::System => "system",
-        }
-    }
-
-    fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "light" => Some(Theme::Light),
-            "dark" => Some(Theme::Dark),
-            "system" => Some(Theme::System),
-            _ => None,
-        }
-    }
-
-    fn to_visuals(&self) -> egui::Visuals {
-        match self {
-            Theme::Light => egui::Visuals::light(),
-            Theme::Dark => egui::Visuals::dark(),
-            Theme::System => {
-                // Use dark as default for system since we can't easily detect system theme
-                egui::Visuals::dark()
-            }
-        }
-    }
-}
-
-struct DirCompareApp {
-    state: AppState,
+/// Main application struct
+pub struct DirCompareApp {
+    pub state: AppState,
 }
 
 impl DirCompareApp {
@@ -143,15 +74,6 @@ impl DirCompareApp {
                 error_message: None,
             },
         }
-    }
-}
-
-impl DirCompareApp {
-    fn validate_path(path: &str) -> bool {
-        if path.trim().is_empty() {
-            return false;
-        }
-        std::path::Path::new(path).is_dir()
     }
 }
 
@@ -252,13 +174,14 @@ impl eframe::App for DirCompareApp {
                 ui.text_edit_singleline(&mut self.state.dir_a_path);
 
                 if ui.button("Browse...").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                    let dialog = NativeFileDialog;
+                    if let Some(path) = dialog.pick_folder() {
                         self.state.dir_a_path = path.display().to_string();
                     }
                 }
 
                 if !self.state.dir_a_path.is_empty() {
-                    if Self::validate_path(&self.state.dir_a_path) {
+                    if validate_path(&self.state.dir_a_path) {
                         ui.label("✅").on_hover_text("Valid directory");
                     } else {
                         ui.label("❌").on_hover_text("Invalid directory");
@@ -274,13 +197,14 @@ impl eframe::App for DirCompareApp {
                 ui.text_edit_singleline(&mut self.state.dir_b_path);
 
                 if ui.button("Browse...").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                    let dialog = NativeFileDialog;
+                    if let Some(path) = dialog.pick_folder() {
                         self.state.dir_b_path = path.display().to_string();
                     }
                 }
 
                 if !self.state.dir_b_path.is_empty() {
-                    if Self::validate_path(&self.state.dir_b_path) {
+                    if validate_path(&self.state.dir_b_path) {
                         ui.label("✅").on_hover_text("Valid directory");
                     } else {
                         ui.label("❌").on_hover_text("Invalid directory");
@@ -327,8 +251,8 @@ impl eframe::App for DirCompareApp {
             ui.add_space(20.0);
 
             // Compare Button
-            let can_compare = Self::validate_path(&self.state.dir_a_path)
-                && Self::validate_path(&self.state.dir_b_path)
+            let can_compare = validate_path(&self.state.dir_a_path)
+                && validate_path(&self.state.dir_b_path)
                 && !self.state.is_comparing;
 
             if self.state.is_comparing {
@@ -416,5 +340,53 @@ impl eframe::App for DirCompareApp {
                 });
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_validate_path_with_valid_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path().to_str().unwrap();
+        assert!(validate_path(path));
+    }
+
+    #[test]
+    fn test_validate_path_with_nonexistent_directory() {
+        assert!(!validate_path("/nonexistent/path/that/does/not/exist"));
+    }
+
+    #[test]
+    fn test_validate_path_with_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.txt");
+        fs::write(&file_path, "content").unwrap();
+        assert!(!validate_path(file_path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn test_validate_path_with_empty_string() {
+        assert!(!validate_path(""));
+    }
+
+    #[test]
+    fn test_validate_path_with_whitespace_only() {
+        assert!(!validate_path("   "));
+        assert!(!validate_path("\t"));
+        assert!(!validate_path("\n"));
+        assert!(!validate_path("  \t\n  "));
+    }
+
+    #[test]
+    fn test_validate_path_with_relative_path() {
+        // Current directory should exist
+        assert!(validate_path("."));
+        // Parent directory should exist
+        assert!(validate_path(".."));
     }
 }
