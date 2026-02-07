@@ -1,4 +1,4 @@
-use dir_compare_core::{EntryKind, FilenameOnlyStrategy, compare_directories};
+use dir_compare_core::{compare_directories, EntryKind, FilenameOnlyStrategy};
 use dir_compare_gui::tree_view::FileTreeNode;
 use tempfile::TempDir;
 
@@ -102,11 +102,11 @@ fn test_directory_kind_identification() {
     let nodes = FileTreeNode::from_entries(&both_entries);
 
     // Find directories and files
-    let dirs: Vec<_> = nodes
+    let _dirs: Vec<_> = nodes
         .iter()
         .filter(|n| n.kind == EntryKind::Directory)
         .collect();
-    let files: Vec<_> = nodes.iter().filter(|n| n.kind == EntryKind::File).collect();
+    let _files: Vec<_> = nodes.iter().filter(|n| n.kind == EntryKind::File).collect();
 
     // We should have both directories and files
     // Note: The exact count depends on the test data structure
@@ -159,16 +159,10 @@ fn test_summary_counts_calculation() {
     let a_only_count = result.a_only.len();
     let b_only_count = result.b_only.len();
     let both_count = result.both.len();
-    let total_count = a_only_count + b_only_count + both_count;
-
-    // Verify counts are non-negative
-    assert!(a_only_count >= 0);
-    assert!(b_only_count >= 0);
-    assert!(both_count >= 0);
-    assert!(total_count >= 0);
+    let _total_count = a_only_count + b_only_count + both_count;
 
     // Verify total is sum of parts
-    assert_eq!(total_count, a_only_count + b_only_count + both_count);
+    assert_eq!(_total_count, a_only_count + b_only_count + both_count);
 
     // With our test data, we should have entries in each category
     assert!(
