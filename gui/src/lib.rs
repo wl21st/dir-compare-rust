@@ -1,4 +1,5 @@
 pub mod dialog;
+pub mod test_utils;
 pub mod theme;
 pub mod tree_view;
 
