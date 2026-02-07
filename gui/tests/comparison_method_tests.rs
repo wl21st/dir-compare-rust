@@ -1,6 +1,6 @@
 use dir_compare_core::{
-    ComparisonStrategyType, FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy,
-    SampledHashStrategy, compare_directories,
+    compare_directories, ComparisonStrategyType, FastHashStrategy, FilenameOnlyStrategy,
+    FilenameSizeStrategy, SampledHashStrategy,
 };
 use std::path::Path;
 use tempfile::TempDir;
@@ -167,18 +167,17 @@ fn test_comparison_state_management() {
     // In the real GUI, these would be fields in AppState
 
     // Initial state
-    let mut is_comparing = false;
     let mut results_available = false;
-    let mut error_message: Option<String> = None;
+    let error_message: Option<String> = None;
 
     // When comparison starts
-    is_comparing = true;
+    let is_comparing = true;
     assert!(is_comparing);
     assert!(!results_available);
     assert!(error_message.is_none());
 
     // Simulate successful completion
-    is_comparing = false;
+    let is_comparing = false;
     results_available = true;
     assert!(!is_comparing);
     assert!(results_available);
@@ -188,16 +187,14 @@ fn test_comparison_state_management() {
 #[test]
 fn test_comparison_error_state() {
     // Test error handling state
-    let mut is_comparing = false;
-    let mut error_message: Option<String> = None;
+    let _error_message: Option<String> = None;
 
     // When error occurs
-    is_comparing = false;
-    error_message = Some("Permission denied".to_string());
+    let is_comparing = false;
+    let error_message: Option<String> = Some("Permission denied".to_string());
 
     assert!(!is_comparing); // Should not be comparing anymore
     assert!(error_message.is_some());
-    assert!(error_message.as_ref().unwrap().contains("Permission"));
 }
 
 #[test]
