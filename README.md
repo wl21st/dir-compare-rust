@@ -52,7 +52,7 @@ The GUI provides:
 
 ### CLI Basic Comparison
 
-Compare two directories using the default filename-only method:
+Compare two directories using the default content hash method:
 
 ```bash
 dir-compare -a /path/to/dir_a -b /path/to/dir_b
@@ -62,7 +62,7 @@ dir-compare -a /path/to/dir_a -b /path/to/dir_b
 
 Choose how files are compared:
 
-#### By Filename Only (Default)
+#### By Filename Only
 ```bash
 dir-compare -a dir_a -b dir_b --method filename
 ```
@@ -74,7 +74,7 @@ dir-compare -a dir_a -b dir_b --method size
 ```
 Matches files with the same name AND same size. Useful for finding modified files.
 
-#### By Filename and Content Hash
+#### By Filename and Content Hash (Default)
 ```bash
 dir-compare -a dir_a -b dir_b --method hash
 ```

@@ -19,7 +19,7 @@ struct Args {
     #[arg(short = 'b', long = "dir-b")]
     dir_b: PathBuf,
 
-    #[arg(short, long, default_value = "filename")]
+    #[arg(short, long, default_value = "hash")]
     method: String,
 
     #[arg(short, long)]
