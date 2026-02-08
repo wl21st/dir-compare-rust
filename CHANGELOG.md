@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.2.0]
 
 ### Breaking Changes
 
@@ -18,6 +18,6 @@ All notable changes to this project will be documented in this file.
 - Updated error messages to reference positional arguments instead of named flags
 - Updated documentation (README.md) with new CLI invocation examples
 
-## [v1.0.0] - Previous Release
+## [0.1.0] - Previous Release
 
 See RELEASE_NOTES.md for v1.0.0 features and details.
