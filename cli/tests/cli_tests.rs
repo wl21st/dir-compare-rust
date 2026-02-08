@@ -24,9 +24,7 @@ fn setup_test_dirs() -> tempfile::TempDir {
 #[test]
 fn test_cli_missing_dir_a() {
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg("/nonexistent")
-        .arg("--dir-b")
+    cmd.arg("/nonexistent")
         .arg("/tmp")
         .assert()
         .failure()
@@ -40,9 +38,7 @@ fn test_cli_missing_dir_b() {
     fs::create_dir_all(&dir_a).unwrap();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(dir_a.to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(dir_a.to_str().unwrap())
         .arg("/nonexistent")
         .assert()
         .failure()
@@ -58,9 +54,7 @@ fn test_cli_path_is_not_directory() {
     fs::create_dir_all(&dir_b).unwrap();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(file_a.to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(file_a.to_str().unwrap())
         .arg(dir_b.to_str().unwrap())
         .assert()
         .failure()
@@ -72,9 +66,7 @@ fn test_cli_invalid_method() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--method")
         .arg("invalid_method")
@@ -88,9 +80,7 @@ fn test_cli_invalid_format() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--format")
         .arg("invalid_format")
@@ -104,9 +94,7 @@ fn test_cli_default_method() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .assert()
         .success()
@@ -118,9 +106,7 @@ fn test_cli_method_filename() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--method")
         .arg("filename")
@@ -133,9 +119,7 @@ fn test_cli_method_size() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--method")
         .arg("size")
@@ -148,9 +132,7 @@ fn test_cli_method_hash() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--method")
         .arg("hash")
@@ -171,9 +153,7 @@ fn test_cli_case_insensitive() {
     fs::write(dir_b.join("file.txt"), b"content").unwrap();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(dir_a.to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(dir_a.to_str().unwrap())
         .arg(dir_b.to_str().unwrap())
         .arg("--case-insensitive")
         .assert()
@@ -186,9 +166,7 @@ fn test_cli_format_text() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--format")
         .arg("text")
@@ -202,9 +180,7 @@ fn test_cli_format_html() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--format")
         .arg("html")
@@ -218,9 +194,7 @@ fn test_cli_format_markdown() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--format")
         .arg("markdown")
@@ -235,9 +209,7 @@ fn test_cli_output_file() {
     let output_file = temp_dir.path().join("output.txt");
 
     let mut cmd = cli_command();
-    cmd.arg("--dir-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("--dir-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("--output")
         .arg(output_file.to_str().unwrap())
@@ -255,9 +227,7 @@ fn test_cli_short_flags() {
     let temp_dir = setup_test_dirs();
 
     let mut cmd = cli_command();
-    cmd.arg("-a")
-        .arg(temp_dir.path().join("dir_a").to_str().unwrap())
-        .arg("-b")
+    cmd.arg(temp_dir.path().join("dir_a").to_str().unwrap())
         .arg(temp_dir.path().join("dir_b").to_str().unwrap())
         .arg("-m")
         .arg("filename")
@@ -274,8 +244,8 @@ fn test_cli_help_message() {
         .assert()
         .success()
         .stdout(predicate::str::contains("dir-compare"))
-        .stdout(predicate::str::contains("--dir-a"))
-        .stdout(predicate::str::contains("--dir-b"))
+        .stdout(predicate::str::contains("DIR1"))
+        .stdout(predicate::str::contains("DIR2"))
         .stdout(predicate::str::contains("--method"))
         .stdout(predicate::str::contains("--format"));
 }
@@ -287,4 +257,30 @@ fn test_cli_version() {
         .assert()
         .success()
         .stdout(predicate::str::contains("0.1.0"));
+}
+
+#[test]
+fn test_cli_missing_positional_arguments() {
+    let mut cmd = cli_command();
+    cmd.assert().failure().stderr(
+        predicate::str::contains("required arguments were not provided")
+            .or(predicate::str::contains("requires an argument")),
+    );
+}
+
+#[test]
+fn test_cli_extra_positional_arguments() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("/unexpected/path")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unexpected").or(predicate::str::contains("positional")));
 }

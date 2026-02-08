@@ -13,10 +13,12 @@ use std::process;
 #[command(version = "0.1.0")]
 #[command(about = "Compare two directories and report differences", long_about = None)]
 struct Args {
-    #[arg(short = 'a', long = "dir-a")]
+    /// First directory to compare
+    #[arg(value_name = "DIR1")]
     dir_a: PathBuf,
 
-    #[arg(short = 'b', long = "dir-b")]
+    /// Second directory to compare
+    #[arg(value_name = "DIR2")]
     dir_b: PathBuf,
 
     #[arg(short, long, default_value = "hash")]
@@ -41,7 +43,7 @@ fn main() {
 
     if !args.dir_a.exists() {
         eprintln!(
-            "Error: Directory A does not exist: {}",
+            "Error: First directory does not exist: {}",
             args.dir_a.display()
         );
         process::exit(1);
@@ -49,19 +51,25 @@ fn main() {
 
     if !args.dir_b.exists() {
         eprintln!(
-            "Error: Directory B does not exist: {}",
+            "Error: Second directory does not exist: {}",
             args.dir_b.display()
         );
         process::exit(1);
     }
 
     if !args.dir_a.is_dir() {
-        eprintln!("Error: Path A is not a directory: {}", args.dir_a.display());
+        eprintln!(
+            "Error: First path is not a directory: {}",
+            args.dir_a.display()
+        );
         process::exit(1);
     }
 
     if !args.dir_b.is_dir() {
-        eprintln!("Error: Path B is not a directory: {}", args.dir_b.display());
+        eprintln!(
+            "Error: Second path is not a directory: {}",
+            args.dir_b.display()
+        );
         process::exit(1);
     }
 
