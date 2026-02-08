@@ -1071,7 +1071,7 @@ dependencies = [
 
 [[package]]
 name = "dir-compare-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -1082,7 +1082,7 @@ dependencies = [
 
 [[package]]
 name = "dir-compare-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "fxhash",
  "sha2",
@@ -1093,7 +1093,7 @@ dependencies = [
 
 [[package]]
 name = "dir-compare-gui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "dir-compare-core",
  "dirs",
