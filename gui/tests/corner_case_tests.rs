@@ -18,7 +18,7 @@ fn test_empty_directory_a_comparison() {
     std::fs::write(dir_b.path().join("file.txt"), "content").unwrap();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // A-only should be 0, B-only should have 1 entry
     assert_eq!(result.a_only.len(), 0);
@@ -31,7 +31,7 @@ fn test_both_empty_directories() {
     let (dir_a, dir_b) = create_empty_dirs();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // All counts should be zero
     assert_eq!(result.a_only.len(), 0);
@@ -44,7 +44,7 @@ fn test_permission_denied_error() {
     let (dir_a, dir_b) = create_permission_denied_dir();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     // On Unix, this should fail with permission error
     // On Windows or if running as root, it might succeed
@@ -78,7 +78,7 @@ fn test_deeply_nested_directories() {
     let (dir_a, dir_b) = create_deeply_nested_dir();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     // Should complete without stack overflow
     assert!(result.is_ok());
@@ -96,7 +96,7 @@ fn test_unicode_filenames() {
     let (dir_a, dir_b) = create_unicode_dirs();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     // Should handle unicode filenames without errors
     assert!(result.is_ok());
@@ -121,7 +121,7 @@ fn test_large_directory_performance() {
 
     let start = std::time::Instant::now();
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
     let duration = start.elapsed();
 
     // Should complete within reasonable time (5 seconds for 100 files)
@@ -244,7 +244,7 @@ fn test_comparison_with_very_long_filenames() {
     std::fs::write(dir_b.path().join(&long_name), "content b").unwrap();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     // Should handle long filenames
     assert!(result.is_ok());
@@ -268,7 +268,7 @@ fn test_comparison_with_special_characters_in_filenames() {
     }
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     assert!(result.is_ok());
     let comparison = result.unwrap();

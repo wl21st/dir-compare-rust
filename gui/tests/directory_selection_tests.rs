@@ -122,3 +122,12 @@ fn test_directory_validation_with_real_dirs() {
     std::fs::write(&file_path, "content").unwrap();
     assert!(!validate_path(file_path.to_str().unwrap()));
 }
+
+#[test]
+fn test_ignore_file_selection() {
+    let test_path = PathBuf::from("/test/ignore_file.txt");
+    let dialog = MockFileDialog::new(Some(test_path.clone()));
+
+    let result = dialog.pick_file();
+    assert_eq!(result, Some(test_path));
+}

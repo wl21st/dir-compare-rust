@@ -38,6 +38,7 @@ fn main() -> eframe::Result<()> {
 pub struct AppState {
     pub dir_a_path: String,
     pub dir_b_path: String,
+    pub ignore_file_path: Option<String>,
     pub comparison_method: ComparisonStrategyType,
     pub results: Option<ComparisonResult>,
     pub tree_cache: Option<TreeCache>,
@@ -248,6 +249,30 @@ impl eframe::App for DirCompareApp {
                     });
             });
 
+            // Ignore File
+            ui.horizontal(|ui| {
+                ui.label("Ignore File:");
+                let mut ignore_path_display = self
+                    .state
+                    .ignore_file_path
+                    .as_deref()
+                    .unwrap_or("")
+                    .to_string();
+                ui.text_edit_singleline(&mut ignore_path_display);
+                self.state.ignore_file_path = if ignore_path_display.is_empty() {
+                    None
+                } else {
+                    Some(ignore_path_display)
+                };
+
+                if ui.button("Browse...").clicked() {
+                    let dialog = NativeFileDialog;
+                    if let Some(path) = dialog.pick_file() {
+                        self.state.ignore_file_path = Some(path.display().to_string());
+                    }
+                }
+            });
+
             ui.add_space(20.0);
 
             // Compare Button
@@ -275,6 +300,7 @@ impl eframe::App for DirCompareApp {
                     let dir_a = self.state.dir_a_path.clone();
                     let dir_b = self.state.dir_b_path.clone();
                     let method = self.state.comparison_method;
+                    let ignore_file_path = self.state.ignore_file_path.clone();
 
                     std::thread::spawn(move || {
                         let strategy: Box<dyn ComparisonStrategy> = match method {
@@ -296,6 +322,7 @@ impl eframe::App for DirCompareApp {
                             std::path::Path::new(&dir_a),
                             std::path::Path::new(&dir_b),
                             strategy.as_ref(),
+                            ignore_file_path.as_deref().map(std::path::Path::new),
                         );
 
                         match result {

@@ -31,7 +31,7 @@ mod tests {
         );
 
         let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -56,7 +56,7 @@ mod tests {
         );
 
         let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -80,7 +80,7 @@ mod tests {
         fs::create_dir_all(&dir_b).unwrap();
 
         let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -102,7 +102,7 @@ mod tests {
         );
 
         let strategy = dir_compare_core::comparison::FilenameSizeStrategy::new(false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -139,7 +139,7 @@ mod tests {
         );
 
         let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -172,7 +172,7 @@ mod tests {
         .unwrap();
 
         let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy);
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -210,7 +210,7 @@ mod tests {
 
         // 1. Sampling only -> Should Match
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
         assert_eq!(
             result.both.len(),
             1,
@@ -220,7 +220,7 @@ mod tests {
         // 2. Verify on match -> Should NOT Match
         let strategy_verify = dir_compare_core::SampledHashStrategy::new(false, true);
         let result_verify =
-            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy_verify).unwrap();
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy_verify, None).unwrap();
         assert_eq!(
             result_verify.both.len(),
             0,
@@ -237,7 +237,7 @@ mod tests {
             &[("small.txt", b"abd")], // diff
         );
         let result_small =
-            dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
+            dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy, None).unwrap();
         assert_eq!(result_small.both.len(), 0, "Small files should differ");
     }
 
@@ -255,7 +255,7 @@ mod tests {
             create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.txt", content_padded)]);
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         // Files with different sizes should NOT match even if sampled content overlaps
         assert_eq!(
@@ -277,7 +277,7 @@ mod tests {
         let dir_b = create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.bin", &content)]);
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         assert_eq!(result.both.len(), 1, "Identical files should match");
         assert_eq!(result.a_only.len(), 0);
@@ -297,7 +297,7 @@ mod tests {
 
         // Run comparison multiple times
         for _ in 0..3 {
-            let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+            let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
             assert_eq!(
                 result.both.len(),
                 1,
@@ -314,7 +314,7 @@ mod tests {
         let dir_b = create_test_dir_with_files(temp_dir.path(), "dir_b", &[("empty.txt", b"")]);
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         assert_eq!(
             result.both.len(),
@@ -349,7 +349,7 @@ mod tests {
         );
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy).unwrap();
+        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         // Files with different sizes should NOT match
         assert_eq!(
@@ -363,7 +363,7 @@ mod tests {
             create_test_dir_with_files(temp_dir.path(), "dir_c", &[("size_256.bin", &content_256)]);
         let dir_d =
             create_test_dir_with_files(temp_dir.path(), "dir_d", &[("size_256.bin", &content_256)]);
-        let result2 = dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy).unwrap();
+        let result2 = dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy, None).unwrap();
         assert_eq!(
             result2.both.len(),
             1,
@@ -456,6 +456,49 @@ mod tests {
         assert_eq!(
             computed_small, computed_small2,
             "Hash computation should be deterministic"
+        );
+    }
+
+    #[test]
+    fn test_compare_with_ignore_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir_a = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_a",
+            &[
+                ("file1.txt", b"content1"),
+                ("file2.log", b"log content"),
+                ("should_be_ignored.txt", b"ignore me"),
+            ],
+        );
+        let dir_b = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_b",
+            &[("file1.txt", b"content1"), ("file2.log", b"log content")],
+        );
+
+        let ignore_file_path = temp_dir.path().join(".dir-compare-ignore");
+        let mut ignore_file = File::create(&ignore_file_path).unwrap();
+        writeln!(ignore_file, "*.log").unwrap();
+        writeln!(ignore_file, "should_be_ignored.txt").unwrap();
+
+        let strategy = dir_compare_core::comparison::FilenameOnlyStrategy::new(false);
+        let result = dir_compare_core::compare_directories(
+            &dir_a,
+            &dir_b,
+            &strategy,
+            Some(&ignore_file_path),
+        );
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        assert_eq!(result.a_only.len(), 0, "Expected no A-only entries after ignore");
+        assert_eq!(result.b_only.len(), 0, "Expected no B-only entries after ignore");
+        assert_eq!(result.both.len(), 1, "Expected 1 matching entry after ignore");
+        assert_eq!(
+            result.both[0].0.path.file_name().unwrap(),
+            "file1.txt"
         );
     }
 }

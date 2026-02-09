@@ -36,6 +36,9 @@ struct Args {
     /// Verify matches with full hash when using sampled-hash strategy
     #[arg(long)]
     verify: bool,
+
+    #[arg(long)]
+    ignore: Option<PathBuf>,
 }
 
 fn main() {
@@ -87,7 +90,12 @@ fn main() {
         }
     };
 
-    match compare_directories(&args.dir_a, &args.dir_b, strategy.as_ref()) {
+    match compare_directories(
+        &args.dir_a,
+        &args.dir_b,
+        strategy.as_ref(),
+        args.ignore.as_deref(),
+    ) {
         Ok(result) => {
             let formatter: Box<dyn Formatter> = match args.format.to_lowercase().as_str() {
                 "text" | "txt" => Box::new(TextFormatter),
