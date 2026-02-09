@@ -66,8 +66,7 @@ impl DirCompareApp {
             state: AppState {
                 dir_a_path: String::new(),
                 dir_b_path: String::new(),
-                ignore_file_path: None,
-                comparison_method: ComparisonStrategyType::Filename,
+                comparison_method: ComparisonStrategyType::FastHash,
                 results: None,
                 tree_cache: None,
                 theme: initial_theme,

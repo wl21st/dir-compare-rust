@@ -52,37 +52,37 @@ The GUI provides:
 
 ### CLI Basic Comparison
 
-Compare two directories using the default filename-only method:
+Compare two directories using the default content hash method:
 
 ```bash
-dir-compare -a /path/to/dir_a -b /path/to/dir_b
+dir-compare /path/to/dir_a /path/to/dir_b
 ```
 
 ### Comparison Methods
 
 Choose how files are compared:
 
-#### By Filename Only (Default)
+#### By Filename Only
 ```bash
-dir-compare -a dir_a -b dir_b --method filename
+dir-compare dir_a dir_b --method filename
 ```
 Matches files with the same name, regardless of size or content.
 
 #### By Filename and Size
 ```bash
-dir-compare -a dir_a -b dir_b --method size
+dir-compare dir_a dir_b --method size
 ```
 Matches files with the same name AND same size. Useful for finding modified files.
 
-#### By Filename and Content Hash
+#### By Filename and Content Hash (Default)
 ```bash
-dir-compare -a dir_a -b dir_b --method hash
+dir-compare dir_a dir_b --method hash
 ```
 Matches files with the same name AND identical content. Most accurate for finding duplicates.
 
 #### By Filename and Sampled Hash
 ```bash
-dir-compare -a dir_a -b dir_b --method sampled
+dir-compare dir_a dir_b --method sampled
 ```
 Matches files with the same name AND identical sampled content hash.
 Fast for large files as it reads small samples (default 7 samples of 431 bytes).
@@ -98,7 +98,7 @@ be a prefix or subset of another.
 Compare filenames without regard to case:
 
 ```bash
-dir-compare -a dir_a -b dir_b --case-insensitive
+dir-compare dir_a dir_b --case-insensitive
 ```
 
 ### Output Formats
@@ -107,18 +107,18 @@ Choose how results are displayed:
 
 #### Text (Default)
 ```bash
-dir-compare -a dir_a -b dir_b --format text
+dir-compare dir_a dir_b --format text
 ```
 
 #### HTML Report
 ```bash
-dir-compare -a dir_a -b dir_b --format html --output report.html
+dir-compare dir_a dir_b --format html --output report.html
 ```
 Generates a styled HTML report with statistics.
 
 #### Markdown Report
 ```bash
-dir-compare -a dir_a -b dir_b --format markdown --output report.md
+dir-compare dir_a dir_b --format markdown --output report.md
 ```
 Generates a Markdown document suitable for documentation.
 
@@ -127,7 +127,7 @@ Generates a Markdown document suitable for documentation.
 Write results to a file instead of stdout:
 
 ```bash
-dir-compare -a dir_a -b dir_b --output results.txt
+dir-compare dir_a dir_b --output results.txt
 ```
 
 ## Comparison Method Trade-offs
@@ -224,7 +224,7 @@ The HTML format includes:
 ls -la /path/to/directory
 
 # Use the correct path
-dir-compare -a /correct/path/a -b /correct/path/b
+dir-compare /correct/path/a /correct/path/b
 ```
 
 #### "Error: Path A is not a directory"
@@ -239,10 +239,10 @@ dir-compare -a /correct/path/a -b /correct/path/b
 
 **Solution**: Use one of the valid methods:
 ```bash
---method filename    # or "name"
---method size
---method sampled     # or "sampled-hash"
---method hash        # or "fxhash" or "fasthash"
+dir-compare dir_a dir_b --method filename    # or "name"
+dir-compare dir_a dir_b --method size
+dir-compare dir_a dir_b --method sampled     # or "sampled-hash"
+dir-compare dir_a dir_b --method hash        # or "fxhash" or "fasthash"
 ```
 
 #### "Error: Invalid format"
@@ -251,9 +251,18 @@ dir-compare -a /correct/path/a -b /correct/path/b
 
 **Solution**: Use one of the valid formats:
 ```bash
---format text        # or "txt"
---format html
---format markdown    # or "md"
+dir-compare dir_a dir_b --format text        # or "txt"
+dir-compare dir_a dir_b --format html
+dir-compare dir_a dir_b --format markdown    # or "md"
+```
+
+#### "Error: Missing required positional argument"
+
+**Cause**: The two directory paths are not provided.
+
+**Solution**: Provide both directories:
+```bash
+dir-compare /path/to/dir_a /path/to/dir_b
 ```
 
 #### Warning: "Could not access entry: [permission denied]"
