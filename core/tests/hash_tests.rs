@@ -27,7 +27,7 @@ mod tests {
             create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.txt", b"same content")]);
 
         let strategy = FastHashStrategy::new(false);
-        let result = compare_directories(&dir_a, &dir_b, &strategy);
+        let result = compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -46,7 +46,7 @@ mod tests {
             create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.txt", b"content B")]);
 
         let strategy = FastHashStrategy::new(false);
-        let result = compare_directories(&dir_a, &dir_b, &strategy);
+        let result = compare_directories(&dir_a, &dir_b, &strategy, None);
 
         assert!(result.is_ok());
         let result = result.unwrap();

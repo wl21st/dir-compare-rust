@@ -13,7 +13,7 @@ fn test_filename_comparison_strategy() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     assert!(result.is_ok());
     let comparison = result.unwrap();
@@ -31,7 +31,7 @@ fn test_filename_size_comparison_strategy() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FilenameSizeStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     assert!(result.is_ok());
     let comparison = result.unwrap();
@@ -48,7 +48,7 @@ fn test_content_hash_comparison_strategy() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FastHashStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     assert!(result.is_ok());
     let comparison = result.unwrap();
@@ -71,7 +71,7 @@ fn test_sampled_hash_comparison_strategy() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = SampledHashStrategy::new(false, true);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy);
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None);
 
     assert!(result.is_ok());
     let comparison = result.unwrap();
@@ -87,7 +87,7 @@ fn test_comparison_returns_error_for_invalid_dir() {
     let result = compare_directories(
         Path::new("/nonexistent/path/12345"),
         Path::new("/another/nonexistent/path"),
-        &strategy,
+        &strategy, None,
     );
 
     assert!(result.is_err());
@@ -101,12 +101,12 @@ fn test_all_strategies_produce_consistent_results() {
     let filename_result = compare_directories(
         dir_a.path(),
         dir_b.path(),
-        &FilenameOnlyStrategy::new(false),
+        &FilenameOnlyStrategy::new(false), None,
     )
     .unwrap();
 
     let hash_result =
-        compare_directories(dir_a.path(), dir_b.path(), &FastHashStrategy::new(false)).unwrap();
+        compare_directories(dir_a.path(), dir_b.path(), &FastHashStrategy::new(false), None).unwrap();
 
     // For identical files, filename and hash should agree on "both" count
     // (Note: This assumes common.txt has identical content)

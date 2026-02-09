@@ -32,7 +32,7 @@ fn test_results_display_a_only_entries() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // Convert A-only entries to tree nodes
     let a_only_nodes = FileTreeNode::from_entries(&result.a_only);
@@ -55,7 +55,7 @@ fn test_results_display_b_only_entries() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // Convert B-only entries to tree nodes
     let b_only_nodes = FileTreeNode::from_entries(&result.b_only);
@@ -74,7 +74,7 @@ fn test_results_display_both_entries() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // Convert "both" entries to tree nodes (just use the A side)
     let both_entries: Vec<_> = result.both.iter().map(|(a, _)| a.clone()).collect();
@@ -93,7 +93,7 @@ fn test_directory_kind_identification() {
 
     // Scan directory A to get entries
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_a.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_a.path(), &strategy, None).unwrap();
 
     // All entries should be in "both" since we're comparing dir with itself
     let both_entries: Vec<_> = result.both.iter().map(|(a, _)| a.clone()).collect();
@@ -118,7 +118,7 @@ fn test_nested_directory_structure() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // Check A-only tree for nested structure
     let a_only_nodes = FileTreeNode::from_entries(&result.a_only);
@@ -153,7 +153,7 @@ fn test_summary_counts_calculation() {
     let (dir_a, dir_b) = create_test_dir_structure();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // Calculate summary statistics
     let a_only_count = result.a_only.len();
@@ -178,7 +178,7 @@ fn test_empty_results_show_zero_counts() {
     let dir_b = tempfile::TempDir::new().unwrap();
 
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_b.path(), &strategy, None).unwrap();
 
     // All counts should be zero
     assert_eq!(result.a_only.len(), 0);
@@ -192,7 +192,7 @@ fn test_tree_node_paths_are_correct() {
 
     // Get entries from dir_a
     let strategy = FilenameOnlyStrategy::new(false);
-    let result = compare_directories(dir_a.path(), dir_a.path(), &strategy).unwrap();
+    let result = compare_directories(dir_a.path(), dir_a.path(), &strategy, None).unwrap();
     let entries: Vec<_> = result.both.iter().map(|(a, _)| a.clone()).collect();
 
     // Convert to tree nodes

@@ -4,6 +4,9 @@ use std::path::PathBuf;
 pub trait FileDialogProvider {
     /// Opens a folder picker dialog and returns the selected path
     fn pick_folder(&self) -> Option<PathBuf>;
+
+    /// Opens a file picker dialog and returns the selected path
+    fn pick_file(&self) -> Option<PathBuf>;
 }
 
 /// Native file dialog implementation using rfd
@@ -12,6 +15,10 @@ pub struct NativeFileDialog;
 impl FileDialogProvider for NativeFileDialog {
     fn pick_folder(&self) -> Option<PathBuf> {
         rfd::FileDialog::new().pick_folder()
+    }
+
+    fn pick_file(&self) -> Option<PathBuf> {
+        rfd::FileDialog::new().pick_file()
     }
 }
 
@@ -34,6 +41,10 @@ impl MockFileDialog {
 
 impl FileDialogProvider for MockFileDialog {
     fn pick_folder(&self) -> Option<PathBuf> {
+        self.return_path.clone()
+    }
+
+    fn pick_file(&self) -> Option<PathBuf> {
         self.return_path.clone()
     }
 }

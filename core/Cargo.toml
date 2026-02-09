@@ -8,6 +8,7 @@ walkdir.workspace = true
 fxhash.workspace = true
 thiserror.workspace = true
 sha2.workspace = true
+ignore.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -530,28 +530,44 @@ fn compute_file_hash_sha256(path: &std::path::Path) -> String {
     }
 }
 
-pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> {
+pub fn traverse_directory(
+    dir: &std::path::Path,
+    ignore_file_path: Option<&std::path::Path>,
+) -> std::io::Result<Vec<Entry>> {
     // Canonicalize the directory path to ensure we work with absolute paths
     let dir = std::fs::canonicalize(dir)?;
     let mut entries = Vec::new();
 
-    for entry in walkdir::WalkDir::new(dir)
+    let mut walk_builder = ignore::WalkBuilder::new(&dir);
+    walk_builder
         .follow_links(false)
-        .sort_by_file_name()
-        .min_depth(1)
-        .into_iter()
-    {
-        match entry {
+        .sort_by_file_name(|a, b| a.cmp(b));
+
+    if let Some(ignore_path) = ignore_file_path {
+        walk_builder.add_ignore(ignore_path);
+    }
+
+    for result in walk_builder.build() {
+        match result {
             Ok(entry) => {
+                if entry.depth() == 0 {
+                    continue;
+                }
                 let path = entry.path().to_path_buf();
                 let abs_path = path.clone();
-                let kind = if entry.file_type().is_dir() {
+                let kind = if entry.file_type().unwrap().is_dir() {
                     EntryKind::Directory
                 } else {
                     EntryKind::File
                 };
-                let size = if entry.file_type().is_file() {
-                    Some(entry.metadata()?.len())
+                let size = if entry.file_type().unwrap().is_file() {
+                    match entry.metadata() {
+                        Ok(metadata) => Some(metadata.len()),
+                        Err(e) => {
+                            eprintln!("Warning: Could not get metadata for {}: {}", entry.path().display(), e);
+                            None
+                        }
+                    }
                 } else {
                     None
                 };
@@ -563,11 +579,7 @@ pub fn traverse_directory(dir: &std::path::Path) -> std::io::Result<Vec<Entry>> 
                 });
             }
             Err(ref e) => {
-                if let Some(path) = e.path() {
-                    eprintln!("Warning: Could not access {}: {}", path.display(), e);
-                } else {
-                    eprintln!("Warning: Could not access entry: {}", e);
-                }
+                eprintln!("Warning: Could not access entry: {}", e);
             }
         }
     }
@@ -607,7 +619,8 @@ pub enum ComparisonStrategyType {
 /// let result = compare_directories(
 ///     &std::path::Path::new("dir_a"),
 ///     &std::path::Path::new("dir_b"),
-///     &strategy
+///     &strategy,
+///     None
 /// );
 ///
 /// match result {
@@ -653,16 +666,18 @@ pub struct ComparisonResult {
 /// let result = compare_directories(
 ///     &std::path::Path::new("test_data/original"),
 ///     &std::path::Path::new("test_data/modified"),
-///     &strategy
+///     &strategy,
+///     None
 /// );
 /// ```
 pub fn compare_directories(
     dir_a: &Path,
     dir_b: &Path,
     strategy: &dyn ComparisonStrategy,
+    ignore_file_path: Option<&Path>,
 ) -> std::io::Result<ComparisonResult> {
-    let entries_a = traverse_directory(dir_a)?;
-    let entries_b = traverse_directory(dir_b)?;
+    let entries_a = traverse_directory(dir_a, ignore_file_path)?;
+    let entries_b = traverse_directory(dir_b, ignore_file_path)?;
 
     let mut a_only: Vec<Entry> = Vec::new();
     let mut b_only: Vec<Entry> = Vec::new();
