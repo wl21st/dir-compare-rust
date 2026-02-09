@@ -1,15 +1,15 @@
 use dir_compare_gui::{
     dialog::{FileDialogProvider, NativeFileDialog},
-    theme::{Theme, load_theme, save_theme},
+    theme::{load_theme, save_theme, Theme},
     tree_view, validate_path,
 };
 
 use dir_compare_core::{
-    ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry, FastHashStrategy,
-    FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy, compare_directories,
+    compare_directories, ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry,
+    FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy,
 };
 use eframe::egui;
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::{channel, Receiver};
 use tree_view::FileTreeNode;
 
 fn main() -> eframe::Result<()> {
@@ -66,6 +66,7 @@ impl DirCompareApp {
             state: AppState {
                 dir_a_path: String::new(),
                 dir_b_path: String::new(),
+                ignore_file_path: None,
                 comparison_method: ComparisonStrategyType::FastHash,
                 results: None,
                 tree_cache: None,
