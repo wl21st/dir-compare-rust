@@ -24,7 +24,7 @@ struct Args {
     #[arg(value_name = "DIR2")]
     dir_b: PathBuf,
 
-    #[arg(short, long, default_value = "hash")]
+    #[arg(short, long, default_value = "sampled")]
     method: String,
 
     #[arg(short, long)]
