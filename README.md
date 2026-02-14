@@ -5,10 +5,11 @@ A command-line tool for comparing two directories and reporting their difference
 ## Features
 
 - **Multiple comparison methods**: Compare by filename, filename+size, or content hash
+- **Flat mode**: Content-based matching to find duplicates and moved files across different directory structures
 - **Multiple output formats**: Text (default), HTML, and Markdown
 - **Flexible filtering**: Case-sensitive or case-insensitive filename matching
 - **Cross-platform**: Works on Windows, macOS, and Linux
-- **Clear categorization**: Results organized into A-only, B-only, and Both sections
+- **Clear categorization**: Results organized into A-only, B-only, and Both sections (hierarchy mode) or content hash groups (flat mode)
 
 ## Installation
 
@@ -93,6 +94,53 @@ false positives. This ensures that files with different sizes will never match, 
 sampled content overlaps. This is particularly important when comparing files where one might
 be a prefix or subset of another.
 
+### Flat Mode (Content-Based Matching)
+
+Flat mode compares files by content hash rather than path, enabling detection of:
+- **Duplicate files**: Files with identical content within or across directories
+- **Moved files**: Files that exist in different locations but have the same content
+
+This is useful when directory structures differ but contain equivalent files.
+
+#### Basic Flat Mode
+```bash
+dir-compare dir_a dir_b --flat
+```
+Compares files by sampled content hash (fast, good for large files).
+
+#### Flat Mode with Full Hash
+```bash
+dir-compare dir_a dir_b --flat --full-hash
+```
+Uses full-file SHA-256 hash for bit-perfect accuracy (slower but eliminates hash collisions).
+
+#### Flat Mode Output Example
+```
+Flat Mode Comparison Summary
+==================================================
+Files in directory A: 5
+Files in directory B: 3
+Unique content hashes: 4
+Duplicate content groups: 2
+
+Hash: a1b2c3d4...e5f6 [DUPLICATE] (1024 bytes, 3 files)
+--------------------------------------------------
+  [A] documents/report.txt -> (moved/copied to B)
+  [A] backup/report.txt -> (moved/copied to B)
+  [B] archive/report.txt <- (moved/copied from A)
+
+Hash: b2c3d4e5...f6a7 [MATCHED] (512 bytes, 2 files)
+--------------------------------------------------
+  [A] file1.txt -> (moved/copied to B)
+  [B] documents/file1.txt <- (moved/copied from A)
+```
+
+**Status indicators:**
+- `[DUPLICATE]`: Multiple files have identical content
+- `[MATCHED]`: Same content exists in both directories (moved/copied)
+- `[A-ONLY]`: Content only exists in directory A
+- `[B-ONLY]`: Content only exists in directory B
+
 ### Case-Insensitive Comparison
 
 Compare filenames without regard to case:
@@ -132,6 +180,8 @@ dir-compare dir_a dir_b --output results.txt
 
 ## Comparison Method Trade-offs
 
+### Hierarchy Mode (Default)
+
 | method | Speed | Use Case |
 |--------|-------|----------|
 | filename | Fastest | Quick overview of missing files |
@@ -139,17 +189,48 @@ dir-compare dir_a dir_b --output results.txt
 | sampled | Fast | Comparing large files with IO constraints |
 | hash | Slower | Verifying file content identity |
 
+### Flat Mode
+
+| option | Speed | Use Case |
+|--------|-------|----------|
+| `--flat` (default) | Fast | Finding duplicates and moved files across structures |
+| `--flat --full-hash` | Slower | Bit-perfect duplicate detection |
+
 ### Performance Characteristics
 
 - **filename**: O(n) - Only compares file names
 - **size**: O(n) - Compares names and reads metadata
 - **sampled**: O(n) - Constant IO per file (read ~3KB), much faster than hash for large files
 - **hash**: O(n×f) - Must read file contents; time depends on total file size
+- **flat mode**: O(n) - Hashes all files then groups by content; memory usage grows with file count
 
 For large directories with many files:
 - Use `filename` for initial scans
 - Use `size` to find obvious modifications
 - Use `hash` only when content verification is critical
+- Use `--flat` when directory structures differ or you need to find duplicates
+
+### Hierarchy Mode vs Flat Mode
+
+| Feature | Hierarchy Mode | Flat Mode |
+|---------|---------------|-----------|
+| Matching criterion | Path + content | Content only |
+| Use case | Syncing identical structures | Finding duplicates, moved files |
+| Output format | A-only / B-only / Both | Content groups by hash |
+| Handles renames | No | Yes (detects as moved) |
+| Handles reorganization | No | Yes (content-based) |
+| Performance | Faster (stops at first mismatch) | Slower (must hash all files) |
+
+**When to use hierarchy mode:**
+- Syncing backups with identical structures
+- Finding missing files in mirrored directories
+- Comparing version-controlled directories
+
+**When to use flat mode:**
+- Finding duplicate files consuming disk space
+- Detecting files moved between folders
+- Comparing reorganized directories
+- Finding copied files with different names
 
 ## Output Format Examples
 

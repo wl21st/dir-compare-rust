@@ -2,6 +2,50 @@ use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+/// Represents a group of files with identical content in flat comparison mode.
+///
+/// Used by flat mode to group files by their content hash regardless of path.
+#[derive(Debug, Clone)]
+pub struct FlatContentGroup {
+    /// Content hash (sampled or full, depending on configuration)
+    pub hash: String,
+    /// File size in bytes
+    pub size: u64,
+    /// Number of files with this content
+    pub file_count: usize,
+    /// Paths in directory A with this content
+    pub files_in_a: Vec<PathBuf>,
+    /// Paths in directory B with this content
+    pub files_in_b: Vec<PathBuf>,
+}
+
+/// The result of a flat mode directory comparison.
+///
+/// Groups files by content hash, showing which files are duplicates,
+/// moved, or unique across the two directories.
+#[derive(Debug, Clone)]
+pub struct FlatComparisonResult {
+    /// Content hash groups with files from both directories
+    pub groups: Vec<FlatContentGroup>,
+    /// Total number of files in directory A
+    pub total_files_a: usize,
+    /// Total number of files in directory B
+    pub total_files_b: usize,
+    /// Number of unique content hashes
+    pub unique_hashes: usize,
+    /// Number of content hashes with duplicates
+    pub duplicate_count: usize,
+}
+
+/// Options for flat mode comparison.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FlatComparisonOptions {
+    /// Use full-file hash instead of sampled hash
+    pub use_full_hash: bool,
+    /// Use case-insensitive filename comparison
+    pub case_insensitive: bool,
+}
+
 /// Represents the type of a directory entry.
 ///
 /// # Examples
@@ -530,6 +574,175 @@ fn compute_file_hash_sha256(path: &std::path::Path) -> String {
     }
 }
 
+/// Internal structure to track file info during flat comparison
+#[derive(Debug, Clone)]
+struct FileInfo {
+    path: PathBuf,
+    size: u64,
+    hash: String,
+}
+
+/// Compares two directories using flat mode (content-based matching).
+///
+/// Groups files by content hash regardless of their path location, enabling
+/// detection of duplicates and moved files across different directory structures.
+///
+/// # Arguments
+///
+/// * `dir_a` - Path to the first directory
+/// * `dir_b` - Path to the second directory
+/// * `options` - Flat comparison options
+/// * `ignore_file_path` - Optional path to an ignore file
+///
+/// # Returns
+///
+/// A `FlatComparisonResult` containing content-based groupings, or an I/O error
+/// if directory traversal fails.
+///
+/// # Example
+///
+/// ```
+/// use dir_compare_core::comparison::{compare_directories_flat, FlatComparisonOptions};
+///
+/// let options = FlatComparisonOptions::default();
+/// let result = compare_directories_flat(
+///     std::path::Path::new("test_data/original"),
+///     std::path::Path::new("test_data/modified"),
+///     &options,
+///     None
+/// );
+/// ```
+pub fn compare_directories_flat(
+    dir_a: &Path,
+    dir_b: &Path,
+    options: &FlatComparisonOptions,
+    ignore_file_path: Option<&Path>,
+) -> std::io::Result<FlatComparisonResult> {
+    // Phase 1: Collect all files from both directories
+    let files_a = collect_files_flat(dir_a, ignore_file_path)?;
+    let files_b = collect_files_flat(dir_b, ignore_file_path)?;
+
+    // Phase 2: Compute hashes for all files
+    let files_a_with_hash: Vec<FileInfo> = files_a
+        .into_iter()
+        .map(|(path, abs_path, size)| {
+            let hash = if options.use_full_hash {
+                compute_file_hash_sha256(&abs_path)
+            } else {
+                _compute_sampled_hash_internal(&abs_path)
+            };
+            FileInfo { path, size, hash }
+        })
+        .collect();
+
+    let files_b_with_hash: Vec<FileInfo> = files_b
+        .into_iter()
+        .map(|(path, abs_path, size)| {
+            let hash = if options.use_full_hash {
+                compute_file_hash_sha256(&abs_path)
+            } else {
+                _compute_sampled_hash_internal(&abs_path)
+            };
+            FileInfo { path, size, hash }
+        })
+        .collect();
+
+    // Phase 3: Group files by content hash
+    let mut hash_groups: HashMap<String, (u64, Vec<PathBuf>, Vec<PathBuf>)> = HashMap::new();
+
+    for file_info in &files_a_with_hash {
+        let entry = hash_groups.entry(file_info.hash.clone()).or_insert((
+            file_info.size,
+            Vec::new(),
+            Vec::new(),
+        ));
+        entry.1.push(file_info.path.clone());
+    }
+
+    for file_info in &files_b_with_hash {
+        let entry = hash_groups.entry(file_info.hash.clone()).or_insert((
+            file_info.size,
+            Vec::new(),
+            Vec::new(),
+        ));
+        entry.2.push(file_info.path.clone());
+    }
+
+    // Phase 4: Build result groups
+    let mut groups: Vec<FlatContentGroup> = hash_groups
+        .into_iter()
+        .map(|(hash, (size, files_a, files_b))| {
+            let file_count = files_a.len() + files_b.len();
+            FlatContentGroup {
+                hash,
+                size,
+                file_count,
+                files_in_a: files_a,
+                files_in_b: files_b,
+            }
+        })
+        .collect();
+
+    // Sort groups by hash for consistent output
+    groups.sort_by(|a, b| a.hash.cmp(&b.hash));
+
+    let total_files_a = files_a_with_hash.len();
+    let total_files_b = files_b_with_hash.len();
+    let unique_hashes = groups.len();
+    let duplicate_count = groups.iter().filter(|g| g.file_count > 1).count();
+
+    Ok(FlatComparisonResult {
+        groups,
+        total_files_a,
+        total_files_b,
+        unique_hashes,
+        duplicate_count,
+    })
+}
+
+/// Collects all files from a directory for flat comparison.
+/// Returns vector of (relative_path, absolute_path, size) tuples.
+fn collect_files_flat(
+    dir: &Path,
+    ignore_file_path: Option<&Path>,
+) -> std::io::Result<Vec<(PathBuf, PathBuf, u64)>> {
+    let dir = std::fs::canonicalize(dir)?;
+    let mut files = Vec::new();
+
+    let mut walk_builder = ignore::WalkBuilder::new(&dir);
+    walk_builder
+        .follow_links(false)
+        .sort_by_file_name(|a, b| a.cmp(b));
+
+    if let Some(ignore_path) = ignore_file_path {
+        walk_builder.add_ignore(ignore_path);
+    }
+
+    for result in walk_builder.build() {
+        match result {
+            Ok(entry) => {
+                if entry.depth() == 0 {
+                    continue;
+                }
+                if entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+                    let abs_path = entry.path().to_path_buf();
+                    let rel_path = abs_path
+                        .strip_prefix(&dir)
+                        .map(|p| p.to_path_buf())
+                        .unwrap_or_else(|_| abs_path.clone());
+                    let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                    files.push((rel_path, abs_path, size));
+                }
+            }
+            Err(ref e) => {
+                eprintln!("Warning: Could not access entry: {}", e);
+            }
+        }
+    }
+
+    Ok(files)
+}
+
 pub fn traverse_directory(
     dir: &std::path::Path,
     ignore_file_path: Option<&std::path::Path>,
@@ -564,7 +777,11 @@ pub fn traverse_directory(
                     match entry.metadata() {
                         Ok(metadata) => Some(metadata.len()),
                         Err(e) => {
-                            eprintln!("Warning: Could not get metadata for {}: {}", entry.path().display(), e);
+                            eprintln!(
+                                "Warning: Could not get metadata for {}: {}",
+                                entry.path().display(),
+                                e
+                            );
                             None
                         }
                     }

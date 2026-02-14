@@ -1,15 +1,15 @@
 use dir_compare_gui::{
     dialog::{FileDialogProvider, NativeFileDialog},
-    theme::{load_theme, save_theme, Theme},
+    theme::{Theme, load_theme, save_theme},
     tree_view, validate_path,
 };
 
 use dir_compare_core::{
-    compare_directories, ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry,
-    FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy,
+    ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry, FastHashStrategy,
+    FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy, compare_directories,
 };
 use eframe::egui;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{Receiver, channel};
 use tree_view::FileTreeNode;
 
 fn main() -> eframe::Result<()> {

@@ -1,4 +1,4 @@
-use dir_compare_core::{compare_directories, EntryKind, FilenameOnlyStrategy};
+use dir_compare_core::{EntryKind, FilenameOnlyStrategy, compare_directories};
 use dir_compare_gui::tree_view::FileTreeNode;
 use tempfile::TempDir;
 

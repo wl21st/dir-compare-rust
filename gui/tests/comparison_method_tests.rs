@@ -1,6 +1,6 @@
 use dir_compare_core::{
-    compare_directories, ComparisonStrategyType, FastHashStrategy, FilenameOnlyStrategy,
-    FilenameSizeStrategy, SampledHashStrategy,
+    ComparisonStrategyType, FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy,
+    SampledHashStrategy, compare_directories,
 };
 use dir_compare_gui::test_utils::create_test_dir_structure;
 use std::path::Path;
@@ -87,7 +87,8 @@ fn test_comparison_returns_error_for_invalid_dir() {
     let result = compare_directories(
         Path::new("/nonexistent/path/12345"),
         Path::new("/another/nonexistent/path"),
-        &strategy, None,
+        &strategy,
+        None,
     );
 
     assert!(result.is_err());
@@ -101,12 +102,18 @@ fn test_all_strategies_produce_consistent_results() {
     let filename_result = compare_directories(
         dir_a.path(),
         dir_b.path(),
-        &FilenameOnlyStrategy::new(false), None,
+        &FilenameOnlyStrategy::new(false),
+        None,
     )
     .unwrap();
 
-    let hash_result =
-        compare_directories(dir_a.path(), dir_b.path(), &FastHashStrategy::new(false), None).unwrap();
+    let hash_result = compare_directories(
+        dir_a.path(),
+        dir_b.path(),
+        &FastHashStrategy::new(false),
+        None,
+    )
+    .unwrap();
 
     // For identical files, filename and hash should agree on "both" count
     // (Note: This assumes common.txt has identical content)

@@ -2,7 +2,9 @@ pub mod comparison;
 pub mod output;
 
 pub use comparison::{
-    compare_directories, ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry,
-    EntryKind, FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy,
+    ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry, EntryKind,
+    FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy, FlatComparisonOptions,
+    FlatComparisonResult, FlatContentGroup, SampledHashStrategy, compare_directories,
+    compare_directories_flat,
 };
 pub use output::Formatter;

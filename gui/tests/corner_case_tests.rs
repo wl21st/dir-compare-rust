@@ -1,10 +1,10 @@
-use dir_compare_core::{compare_directories, FilenameOnlyStrategy};
+use dir_compare_core::{FilenameOnlyStrategy, compare_directories};
+#[cfg(unix)]
+use dir_compare_gui::test_utils::restore_permissions;
 use dir_compare_gui::test_utils::{
     create_deeply_nested_dir, create_empty_dirs, create_many_files_dir,
     create_permission_denied_dir, create_unicode_dirs,
 };
-#[cfg(unix)]
-use dir_compare_gui::test_utils::restore_permissions;
 use tempfile::TempDir;
 
 /// Tests for corner cases and edge conditions
@@ -139,7 +139,7 @@ fn test_large_directory_performance() {
 #[test]
 #[ignore = "shares config state with other theme tests - run with --test-threads=1"]
 fn test_theme_persistence() {
-    use dir_compare_gui::theme::{load_theme, save_theme, Theme};
+    use dir_compare_gui::theme::{Theme, load_theme, save_theme};
 
     // Save a theme
     save_theme(Theme::Dark);
@@ -170,7 +170,7 @@ fn test_theme_persistence() {
 #[test]
 #[ignore = "shares config state with other theme tests - run with --test-threads=1"]
 fn test_theme_loading_restores_selection() {
-    use dir_compare_gui::theme::{load_theme, save_theme, Theme};
+    use dir_compare_gui::theme::{Theme, load_theme, save_theme};
 
     // Save and verify we can load different themes
     for theme in [Theme::Light, Theme::Dark, Theme::System] {

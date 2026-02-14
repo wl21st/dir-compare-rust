@@ -1,4 +1,4 @@
-use crate::comparison::{ComparisonResult, EntryKind};
+use crate::comparison::{ComparisonResult, EntryKind, FlatComparisonResult};
 
 /// Trait for formatting directory comparison results.
 ///
@@ -424,4 +424,351 @@ fn escape_markdown(s: &str) -> String {
         .replace('`', r"\`")
         .replace('*', r"\*")
         .replace('_', r"\_")
+}
+
+/// Formatter for flat mode comparison results (text format).
+///
+/// Groups files by content hash and shows duplicate/moved files.
+pub struct FlatTextFormatter;
+
+impl FlatTextFormatter {
+    /// Formats the flat comparison result into a string representation.
+    pub fn format(&self, result: &FlatComparisonResult) -> String {
+        let mut output = String::new();
+
+        // Summary section
+        output.push_str("Flat Mode Comparison Summary\n");
+        output.push_str(&"=".repeat(50));
+        output.push('\n');
+        output.push_str(&format!("Files in directory A: {}\n", result.total_files_a));
+        output.push_str(&format!("Files in directory B: {}\n", result.total_files_b));
+        output.push_str(&format!(
+            "Unique content hashes: {}\n",
+            result.unique_hashes
+        ));
+        output.push_str(&format!(
+            "Duplicate content groups: {}\n",
+            result.duplicate_count
+        ));
+        output.push('\n');
+
+        // Group details
+        for group in &result.groups {
+            let in_a = !group.files_in_a.is_empty();
+            let in_b = !group.files_in_b.is_empty();
+            let is_duplicate = group.file_count > 1;
+
+            // Header line with hash and metadata
+            let status = if is_duplicate {
+                "[DUPLICATE]"
+            } else if in_a && in_b {
+                "[MATCHED]"
+            } else if in_a {
+                "[A-ONLY]"
+            } else {
+                "[B-ONLY]"
+            };
+
+            output.push_str(&format!(
+                "Hash: {} {} ({} bytes, {} files)\n",
+                &group.hash[..16.min(group.hash.len())],
+                status,
+                group.size,
+                group.file_count
+            ));
+            output.push_str(&"-".repeat(50));
+            output.push('\n');
+
+            // Files in A
+            for path in &group.files_in_a {
+                if in_b {
+                    output.push_str(&format!(
+                        "  [A] {} -> (moved/copied to B)\n",
+                        path.display()
+                    ));
+                } else {
+                    output.push_str(&format!("  [A] {}\n", path.display()));
+                }
+            }
+
+            // Files in B
+            for path in &group.files_in_b {
+                if in_a {
+                    output.push_str(&format!(
+                        "  [B] {} <- (moved/copied from A)\n",
+                        path.display()
+                    ));
+                } else {
+                    output.push_str(&format!("  [B] {}\n", path.display()));
+                }
+            }
+
+            output.push('\n');
+        }
+
+        output
+    }
+}
+
+/// Formatter for flat mode comparison results (HTML format).
+pub struct FlatHtmlFormatter;
+
+impl FlatHtmlFormatter {
+    /// Formats the flat comparison result into an HTML representation.
+    pub fn format(&self, result: &FlatComparisonResult) -> String {
+        let mut html = String::new();
+
+        html.push_str(r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flat Mode Directory Comparison Report</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #4a90d9; padding-bottom: 10px; }
+        .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .summary-box { background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #4a90d9; }
+        .count { font-size: 2em; font-weight: bold; color: #333; }
+        .label { color: #666; font-size: 0.9em; }
+        .hash-group { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+        .hash-header { background: #f8f9fa; padding: 12px 15px; border-bottom: 1px solid #ddd; }
+        .hash-header.duplicate { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .hash-header.matched { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .hash-header.a-only { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .hash-header.b-only { background: #d4edda; border-left: 4px solid #28a745; }
+        .hash-value { font-family: monospace; font-weight: bold; color: #333; }
+        .hash-meta { color: #666; font-size: 0.9em; margin-top: 4px; }
+        .file-list { list-style: none; padding: 0; margin: 0; }
+        .file-list li { padding: 8px 15px; border-bottom: 1px solid #eee; }
+        .file-list li:last-child { border-bottom: none; }
+        .file-a { color: #dc3545; }
+        .file-b { color: #28a745; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; margin-right: 8px; }
+        .badge-a { background: #dc3545; color: white; }
+        .badge-b { background: #28a745; color: white; }
+        .badge-moved { background: #17a2b8; color: white; }
+        .badge-dup { background: #ffc107; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Flat Mode Comparison Report</h1>
+        <div class="summary">
+            <div class="summary-box">
+                <div class="count">"#);
+        html.push_str(&result.total_files_a.to_string());
+        html.push_str(
+            r#"</div>
+                <div class="label">Files in A</div>
+            </div>
+            <div class="summary-box">
+                <div class="count">"#,
+        );
+        html.push_str(&result.total_files_b.to_string());
+        html.push_str(
+            r#"</div>
+                <div class="label">Files in B</div>
+            </div>
+            <div class="summary-box">
+                <div class="count">"#,
+        );
+        html.push_str(&result.unique_hashes.to_string());
+        html.push_str(
+            r#"</div>
+                <div class="label">Unique Hashes</div>
+            </div>
+            <div class="summary-box">
+                <div class="count">"#,
+        );
+        html.push_str(&result.duplicate_count.to_string());
+        html.push_str(
+            r#"</div>
+                <div class="label">Duplicates</div>
+            </div>
+        </div>
+"#,
+        );
+
+        for group in &result.groups {
+            let in_a = !group.files_in_a.is_empty();
+            let in_b = !group.files_in_b.is_empty();
+            let is_duplicate = group.file_count > 1;
+
+            let header_class = if is_duplicate {
+                "duplicate"
+            } else if in_a && in_b {
+                "matched"
+            } else if in_a {
+                "a-only"
+            } else {
+                "b-only"
+            };
+
+            let status_badge = if is_duplicate {
+                r#"<span class="badge badge-dup">DUPLICATE</span>"#
+            } else if in_a && in_b {
+                r#"<span class="badge badge-moved">MOVED</span>"#
+            } else if in_a {
+                r#"<span class="badge badge-a">A-ONLY</span>"#
+            } else {
+                r#"<span class="badge badge-b">B-ONLY</span>"#
+            };
+
+            html.push_str(&format!(
+                r#"        <div class="hash-group">
+            <div class="hash-header {}">
+                <div class="hash-value">{}{}</div>
+                <div class="hash-meta">Size: {} bytes | {} file(s)</div>
+            </div>
+            <ul class="file-list">
+"#,
+                header_class,
+                status_badge,
+                escape_html(&group.hash),
+                group.size,
+                group.file_count
+            ));
+
+            for path in &group.files_in_a {
+                let moved_indicator = if in_b {
+                    r#" <span class="badge badge-moved">→</span>"#
+                } else {
+                    ""
+                };
+                html.push_str(&format!(
+                    r#"                <li class="file-a"><span class="badge badge-a">A</span>{}{}</li>
+"#,
+                    escape_html(&path.display().to_string()),
+                    moved_indicator
+                ));
+            }
+
+            for path in &group.files_in_b {
+                let moved_indicator = if in_a {
+                    r#" <span class="badge badge-moved">←</span>"#
+                } else {
+                    ""
+                };
+                html.push_str(&format!(
+                    r#"                <li class="file-b"><span class="badge badge-b">B</span>{}{}</li>
+"#,
+                    escape_html(&path.display().to_string()),
+                    moved_indicator
+                ));
+            }
+
+            html.push_str(
+                r#"            </ul>
+        </div>
+"#,
+            );
+        }
+
+        html.push_str(
+            r#"    </div>
+</body>
+</html>
+"#,
+        );
+
+        html
+    }
+}
+
+/// Formatter for flat mode comparison results (Markdown format).
+pub struct FlatMarkdownFormatter;
+
+impl FlatMarkdownFormatter {
+    /// Formats the flat comparison result into a Markdown representation.
+    pub fn format(&self, result: &FlatComparisonResult) -> String {
+        let mut md = String::new();
+
+        md.push_str("# Flat Mode Comparison Report\n\n");
+
+        md.push_str("## Summary\n\n");
+        md.push_str("| Metric | Value |\n");
+        md.push_str("|--------|-------|\n");
+        md.push_str(&format!(
+            "| Files in directory A | {} |\n",
+            result.total_files_a
+        ));
+        md.push_str(&format!(
+            "| Files in directory B | {} |\n",
+            result.total_files_b
+        ));
+        md.push_str(&format!(
+            "| Unique content hashes | {} |\n",
+            result.unique_hashes
+        ));
+        md.push_str(&format!(
+            "| Duplicate groups | {} |\n\n",
+            result.duplicate_count
+        ));
+
+        md.push_str("## Content Groups\n\n");
+
+        for group in &result.groups {
+            let in_a = !group.files_in_a.is_empty();
+            let in_b = !group.files_in_b.is_empty();
+            let is_duplicate = group.file_count > 1;
+
+            let status = if is_duplicate {
+                "DUPLICATE"
+            } else if in_a && in_b {
+                "MOVED"
+            } else if in_a {
+                "A-ONLY"
+            } else {
+                "B-ONLY"
+            };
+
+            md.push_str(&format!(
+                "### Hash: `{}...` ({} - {} bytes, {} files)\n\n",
+                &group.hash[..16.min(group.hash.len())],
+                status,
+                group.size,
+                group.file_count
+            ));
+
+            if !group.files_in_a.is_empty() {
+                md.push_str("**Directory A:**\n\n");
+                for path in &group.files_in_a {
+                    if in_b {
+                        md.push_str(&format!(
+                            "- `{}` *(moved/copied to B)*\n",
+                            escape_markdown(&path.display().to_string())
+                        ));
+                    } else {
+                        md.push_str(&format!(
+                            "- `{}`\n",
+                            escape_markdown(&path.display().to_string())
+                        ));
+                    }
+                }
+                md.push('\n');
+            }
+
+            if !group.files_in_b.is_empty() {
+                md.push_str("**Directory B:**\n\n");
+                for path in &group.files_in_b {
+                    if in_a {
+                        md.push_str(&format!(
+                            "- `{}` *(moved/copied from A)*\n",
+                            escape_markdown(&path.display().to_string())
+                        ));
+                    } else {
+                        md.push_str(&format!(
+                            "- `{}`\n",
+                            escape_markdown(&path.display().to_string())
+                        ));
+                    }
+                }
+                md.push('\n');
+            }
+        }
+
+        md
+    }
 }
