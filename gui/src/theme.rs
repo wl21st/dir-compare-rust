@@ -23,7 +23,7 @@ impl Theme {
     }
 
     /// Parses a theme from its string representation
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "light" => Some(Theme::Light),
             "dark" => Some(Theme::Dark),
@@ -37,10 +37,7 @@ impl Theme {
         match self {
             Theme::Light => egui::Visuals::light(),
             Theme::Dark => egui::Visuals::dark(),
-            Theme::System => {
-                // Use dark as default for system since we can't easily detect system theme
-                egui::Visuals::dark()
-            }
+            Theme::System => egui::Visuals::default(),
         }
     }
 }
@@ -61,7 +58,7 @@ pub fn load_theme() -> Option<Theme> {
     let mut file = std::fs::File::open(path).ok()?;
     let mut contents = String::new();
     file.read_to_string(&mut contents).ok()?;
-    Theme::from_str(contents.trim())
+    Theme::parse(contents.trim())
 }
 
 /// Saves the theme to the configuration file
@@ -89,17 +86,17 @@ mod tests {
 
     #[test]
     fn test_theme_from_str_valid() {
-        assert_eq!(Theme::from_str("light"), Some(Theme::Light));
-        assert_eq!(Theme::from_str("dark"), Some(Theme::Dark));
-        assert_eq!(Theme::from_str("system"), Some(Theme::System));
+        assert_eq!(Theme::parse("light"), Some(Theme::Light));
+        assert_eq!(Theme::parse("dark"), Some(Theme::Dark));
+        assert_eq!(Theme::parse("system"), Some(Theme::System));
     }
 
     #[test]
     fn test_theme_from_str_invalid() {
-        assert_eq!(Theme::from_str("invalid"), None);
-        assert_eq!(Theme::from_str(""), None);
-        assert_eq!(Theme::from_str("LIGHT"), None); // case sensitive
-        assert_eq!(Theme::from_str(" Light "), None); // with spaces
+        assert_eq!(Theme::parse("invalid"), None);
+        assert_eq!(Theme::parse(""), None);
+        assert_eq!(Theme::parse("LIGHT"), None); // case sensitive
+        assert_eq!(Theme::parse(" Light "), None); // with spaces
     }
 
     #[test]
@@ -115,7 +112,7 @@ mod tests {
         let themes = [Theme::Light, Theme::Dark, Theme::System];
         for theme in &themes {
             let str_val = theme.as_str();
-            let parsed = Theme::from_str(str_val);
+            let parsed = Theme::parse(str_val);
             assert_eq!(parsed, Some(*theme));
         }
     }

@@ -1,15 +1,15 @@
 use dir_compare_gui::{
     dialog::{FileDialogProvider, NativeFileDialog},
-    theme::{Theme, load_theme, save_theme},
+    theme::{load_theme, save_theme, Theme},
     tree_view, validate_path,
 };
 
 use dir_compare_core::{
-    ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry, FastHashStrategy,
-    FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy, compare_directories,
+    compare_directories, ComparisonResult, ComparisonStrategy, ComparisonStrategyType, Entry,
+    FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy, SampledHashStrategy,
 };
 use eframe::egui;
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::{channel, Receiver};
 use tree_view::FileTreeNode;
 
 fn main() -> eframe::Result<()> {
@@ -132,10 +132,10 @@ impl eframe::App for DirCompareApp {
                         }
                         if ui
                             .radio_value(&mut self.state.theme, Theme::System, "System")
+                            .on_hover_text("Reset to system theme preference. May require restart on some platforms.")
                             .clicked()
                         {
-                            // System default - use dark as fallback since we can't easily detect
-                            ctx.set_visuals(egui::Visuals::dark());
+                            ctx.set_visuals(egui::Visuals::default());
                             save_theme(Theme::System);
                         }
                         if old_theme != self.state.theme {
