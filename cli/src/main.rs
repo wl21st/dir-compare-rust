@@ -1,9 +1,12 @@
 use clap::Parser;
 use dir_compare_core::comparison::{
-    ComparisonStrategy, FastHashStrategy, FilenameOnlyStrategy, FilenameSizeStrategy,
-    SampledHashStrategy, compare_directories,
+    compare_directories, compare_directories_flat, ComparisonStrategy, FastHashStrategy,
+    FilenameOnlyStrategy, FilenameSizeStrategy, FlatComparisonOptions, SampledHashStrategy,
 };
-use dir_compare_core::output::{Formatter, HtmlFormatter, MarkdownFormatter, TextFormatter};
+use dir_compare_core::output::{
+    FlatHtmlFormatter, FlatMarkdownFormatter, FlatTextFormatter, Formatter, HtmlFormatter,
+    MarkdownFormatter, TextFormatter,
+};
 use std::path::PathBuf;
 use std::process;
 
@@ -21,7 +24,7 @@ struct Args {
     #[arg(value_name = "DIR2")]
     dir_b: PathBuf,
 
-    #[arg(short, long, default_value = "hash")]
+    #[arg(short, long, default_value = "sampled")]
     method: String,
 
     #[arg(short, long)]
@@ -39,6 +42,14 @@ struct Args {
 
     #[arg(long)]
     ignore: Option<PathBuf>,
+
+    /// Enable flat mode comparison (content-based matching across different structures)
+    #[arg(long)]
+    flat: bool,
+
+    /// Use full-file hash instead of sampled hash (only applies to flat mode)
+    #[arg(long)]
+    full_hash: bool,
 }
 
 fn main() {
@@ -90,42 +101,83 @@ fn main() {
         }
     };
 
-    match compare_directories(
-        &args.dir_a,
-        &args.dir_b,
-        strategy.as_ref(),
-        args.ignore.as_deref(),
-    ) {
-        Ok(result) => {
-            let formatter: Box<dyn Formatter> = match args.format.to_lowercase().as_str() {
-                "text" | "txt" => Box::new(TextFormatter),
-                "html" => Box::new(HtmlFormatter),
-                "markdown" | "md" => Box::new(MarkdownFormatter),
-                _ => {
-                    eprintln!("Error: Invalid format '{}'", args.format);
-                    eprintln!("Available formats: text, html, markdown");
-                    process::exit(1);
-                }
-            };
+    if args.flat {
+        // Flat mode comparison
+        let options = FlatComparisonOptions {
+            use_full_hash: args.full_hash,
+            ..Default::default()
+        };
 
-            let output = formatter.format(&result);
-
-            match args.output {
-                Some(path) => match std::fs::write(&path, &output) {
-                    Ok(_) => println!("Report written to: {}", path.display()),
-                    Err(e) => {
-                        eprintln!("Error writing to file: {}", e);
+        match compare_directories_flat(&args.dir_a, &args.dir_b, &options, args.ignore.as_deref()) {
+            Ok(result) => {
+                let output = match args.format.to_lowercase().as_str() {
+                    "text" | "txt" => FlatTextFormatter.format(&result),
+                    "html" => FlatHtmlFormatter.format(&result),
+                    "markdown" | "md" => FlatMarkdownFormatter.format(&result),
+                    _ => {
+                        eprintln!("Error: Invalid format '{}'", args.format);
+                        eprintln!("Available formats: text, html, markdown");
                         process::exit(1);
                     }
-                },
-                None => {
-                    println!("{}", output);
+                };
+
+                match args.output {
+                    Some(path) => match std::fs::write(&path, &output) {
+                        Ok(_) => println!("Report written to: {}", path.display()),
+                        Err(e) => {
+                            eprintln!("Error writing to file: {}", e);
+                            process::exit(1);
+                        }
+                    },
+                    None => {
+                        println!("{}", output);
+                    }
                 }
             }
+            Err(e) => {
+                eprintln!("Error during comparison: {}", e);
+                process::exit(1);
+            }
         }
-        Err(e) => {
-            eprintln!("Error during comparison: {}", e);
-            process::exit(1);
+    } else {
+        // Hierarchy mode comparison
+        match compare_directories(
+            &args.dir_a,
+            &args.dir_b,
+            strategy.as_ref(),
+            args.ignore.as_deref(),
+        ) {
+            Ok(result) => {
+                let formatter: Box<dyn Formatter> = match args.format.to_lowercase().as_str() {
+                    "text" | "txt" => Box::new(TextFormatter),
+                    "html" => Box::new(HtmlFormatter),
+                    "markdown" | "md" => Box::new(MarkdownFormatter),
+                    _ => {
+                        eprintln!("Error: Invalid format '{}'", args.format);
+                        eprintln!("Available formats: text, html, markdown");
+                        process::exit(1);
+                    }
+                };
+
+                let output = formatter.format(&result);
+
+                match args.output {
+                    Some(path) => match std::fs::write(&path, &output) {
+                        Ok(_) => println!("Report written to: {}", path.display()),
+                        Err(e) => {
+                            eprintln!("Error writing to file: {}", e);
+                            process::exit(1);
+                        }
+                    },
+                    None => {
+                        println!("{}", output);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error during comparison: {}", e);
+                process::exit(1);
+            }
         }
     }
 }

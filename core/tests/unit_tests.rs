@@ -61,14 +61,18 @@ mod tests {
         assert!(result.is_ok());
         let result = result.unwrap();
 
-        assert!(result
-            .a_only
-            .iter()
-            .any(|e| e.path.to_string_lossy().contains("unique_to_a")));
-        assert!(result
-            .b_only
-            .iter()
-            .any(|e| e.path.to_string_lossy().contains("file5")));
+        assert!(
+            result
+                .a_only
+                .iter()
+                .any(|e| e.path.to_string_lossy().contains("unique_to_a"))
+        );
+        assert!(
+            result
+                .b_only
+                .iter()
+                .any(|e| e.path.to_string_lossy().contains("file5"))
+        );
     }
 
     #[test]
@@ -210,7 +214,8 @@ mod tests {
 
         // 1. Sampling only -> Should Match
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
+        let result =
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
         assert_eq!(
             result.both.len(),
             1,
@@ -255,7 +260,8 @@ mod tests {
             create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.txt", content_padded)]);
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
+        let result =
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         // Files with different sizes should NOT match even if sampled content overlaps
         assert_eq!(
@@ -277,7 +283,8 @@ mod tests {
         let dir_b = create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.bin", &content)]);
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
+        let result =
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         assert_eq!(result.both.len(), 1, "Identical files should match");
         assert_eq!(result.a_only.len(), 0);
@@ -297,7 +304,8 @@ mod tests {
 
         // Run comparison multiple times
         for _ in 0..3 {
-            let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
+            let result =
+                dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
             assert_eq!(
                 result.both.len(),
                 1,
@@ -314,7 +322,8 @@ mod tests {
         let dir_b = create_test_dir_with_files(temp_dir.path(), "dir_b", &[("empty.txt", b"")]);
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
+        let result =
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         assert_eq!(
             result.both.len(),
@@ -349,7 +358,8 @@ mod tests {
         );
 
         let strategy = dir_compare_core::SampledHashStrategy::new(false, false);
-        let result = dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
+        let result =
+            dir_compare_core::compare_directories(&dir_a, &dir_b, &strategy, None).unwrap();
 
         // Files with different sizes should NOT match
         assert_eq!(
@@ -363,7 +373,8 @@ mod tests {
             create_test_dir_with_files(temp_dir.path(), "dir_c", &[("size_256.bin", &content_256)]);
         let dir_d =
             create_test_dir_with_files(temp_dir.path(), "dir_d", &[("size_256.bin", &content_256)]);
-        let result2 = dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy, None).unwrap();
+        let result2 =
+            dir_compare_core::compare_directories(&dir_c, &dir_d, &strategy, None).unwrap();
         assert_eq!(
             result2.both.len(),
             1,
@@ -493,12 +504,203 @@ mod tests {
         assert!(result.is_ok());
         let result = result.unwrap();
 
-        assert_eq!(result.a_only.len(), 0, "Expected no A-only entries after ignore");
-        assert_eq!(result.b_only.len(), 0, "Expected no B-only entries after ignore");
-        assert_eq!(result.both.len(), 1, "Expected 1 matching entry after ignore");
         assert_eq!(
-            result.both[0].0.path.file_name().unwrap(),
-            "file1.txt"
+            result.a_only.len(),
+            0,
+            "Expected no A-only entries after ignore"
         );
+        assert_eq!(
+            result.b_only.len(),
+            0,
+            "Expected no B-only entries after ignore"
+        );
+        assert_eq!(
+            result.both.len(),
+            1,
+            "Expected 1 matching entry after ignore"
+        );
+        assert_eq!(result.both[0].0.path.file_name().unwrap(), "file1.txt");
+    }
+
+    // Flat mode comparison tests
+    #[test]
+    fn test_flat_compare_identical_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir_a = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_a",
+            &[("file1.txt", b"content1"), ("file2.txt", b"content2")],
+        );
+        let dir_b = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_b",
+            &[("file1.txt", b"content1"), ("file2.txt", b"content2")],
+        );
+
+        let options = dir_compare_core::comparison::FlatComparisonOptions::default();
+        let result = dir_compare_core::compare_directories_flat(&dir_a, &dir_b, &options, None);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        assert_eq!(result.total_files_a, 2, "Expected 2 files in A");
+        assert_eq!(result.total_files_b, 2, "Expected 2 files in B");
+        assert_eq!(result.unique_hashes, 2, "Expected 2 unique content hashes");
+        // Each content hash has 2 files (1 in A, 1 in B), so both are "duplicates"
+        assert_eq!(
+            result.duplicate_count, 2,
+            "Expected 2 duplicate groups (same content in both dirs)"
+        );
+        assert_eq!(result.groups.len(), 2, "Expected 2 content groups");
+
+        // Each group should have 1 file in A and 1 file in B
+        for group in &result.groups {
+            assert_eq!(
+                group.files_in_a.len(),
+                1,
+                "Each group should have 1 file in A"
+            );
+            assert_eq!(
+                group.files_in_b.len(),
+                1,
+                "Each group should have 1 file in B"
+            );
+        }
+    }
+
+    #[test]
+    fn test_flat_compare_duplicate_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // Directory A has a duplicate file
+        let dir_a = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_a",
+            &[
+                ("file1.txt", b"duplicate_content"),
+                ("file2.txt", b"duplicate_content"),
+            ],
+        );
+        let dir_b = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_b",
+            &[("file1.txt", b"duplicate_content")],
+        );
+
+        let options = dir_compare_core::comparison::FlatComparisonOptions::default();
+        let result = dir_compare_core::compare_directories_flat(&dir_a, &dir_b, &options, None);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        assert_eq!(result.total_files_a, 2, "Expected 2 files in A");
+        assert_eq!(result.total_files_b, 1, "Expected 1 file in B");
+        assert_eq!(result.unique_hashes, 1, "Expected 1 unique content hash");
+        assert_eq!(result.duplicate_count, 1, "Expected 1 duplicate group");
+
+        // The duplicate group should have 2 files in A and 1 in B
+        let group = &result.groups[0];
+        assert_eq!(group.files_in_a.len(), 2, "Should have 2 files in A");
+        assert_eq!(group.files_in_b.len(), 1, "Should have 1 file in B");
+    }
+
+    #[test]
+    fn test_flat_compare_moved_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        // File exists in different locations with same content
+        let dir_a = temp_dir.path().join("dir_a");
+        let dir_b = temp_dir.path().join("dir_b");
+
+        fs::create_dir_all(&dir_a.join("documents")).unwrap();
+        fs::create_dir_all(&dir_b.join("archive")).unwrap();
+
+        fs::write(dir_a.join("documents").join("report.txt"), b"same_content").unwrap();
+        fs::write(dir_b.join("archive").join("report.txt"), b"same_content").unwrap();
+
+        let options = dir_compare_core::comparison::FlatComparisonOptions::default();
+        let result = dir_compare_core::compare_directories_flat(&dir_a, &dir_b, &options, None);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        assert_eq!(result.total_files_a, 1);
+        assert_eq!(result.total_files_b, 1);
+        assert_eq!(result.unique_hashes, 1);
+        assert_eq!(result.groups.len(), 1);
+
+        // Verify paths show the different locations
+        let group = &result.groups[0];
+        assert!(group.files_in_a[0].to_string_lossy().contains("documents"));
+        assert!(group.files_in_b[0].to_string_lossy().contains("archive"));
+    }
+
+    #[test]
+    fn test_flat_compare_different_content() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir_a = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_a",
+            &[("file1.txt", b"content_a"), ("file2.txt", b"content_a2")],
+        );
+        let dir_b = create_test_dir_with_files(
+            temp_dir.path(),
+            "dir_b",
+            &[("file1.txt", b"content_b"), ("file3.txt", b"content_b2")],
+        );
+
+        let options = dir_compare_core::comparison::FlatComparisonOptions::default();
+        let result = dir_compare_core::compare_directories_flat(&dir_a, &dir_b, &options, None);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        assert_eq!(result.total_files_a, 2);
+        assert_eq!(result.total_files_b, 2);
+        assert_eq!(result.unique_hashes, 4, "Expected 4 unique content hashes");
+        assert_eq!(
+            result.duplicate_count, 0,
+            "No duplicates since all content differs"
+        );
+    }
+
+    #[test]
+    fn test_flat_compare_empty_directories() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir_a = temp_dir.path().join("empty_a");
+        let dir_b = temp_dir.path().join("empty_b");
+        fs::create_dir_all(&dir_a).unwrap();
+        fs::create_dir_all(&dir_b).unwrap();
+
+        let options = dir_compare_core::comparison::FlatComparisonOptions::default();
+        let result = dir_compare_core::compare_directories_flat(&dir_a, &dir_b, &options, None);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        assert_eq!(result.total_files_a, 0);
+        assert_eq!(result.total_files_b, 0);
+        assert_eq!(result.unique_hashes, 0);
+        assert!(result.groups.is_empty());
+    }
+
+    #[test]
+    fn test_flat_compare_with_full_hash() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir_a =
+            create_test_dir_with_files(temp_dir.path(), "dir_a", &[("file.txt", b"test_content")]);
+        let dir_b =
+            create_test_dir_with_files(temp_dir.path(), "dir_b", &[("file.txt", b"test_content")]);
+
+        let options = dir_compare_core::comparison::FlatComparisonOptions {
+            use_full_hash: true,
+            case_insensitive: false,
+        };
+        let result = dir_compare_core::compare_directories_flat(&dir_a, &dir_b, &options, None);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        assert_eq!(result.total_files_a, 1);
+        assert_eq!(result.total_files_b, 1);
+        assert_eq!(result.unique_hashes, 1);
     }
 }

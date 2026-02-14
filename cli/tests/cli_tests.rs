@@ -284,3 +284,167 @@ fn test_cli_extra_positional_arguments() {
         .failure()
         .stderr(predicate::str::contains("unexpected").or(predicate::str::contains("positional")));
 }
+
+// Flat mode CLI tests
+#[test]
+fn test_cli_flat_flag() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    fs::write(dir_a.join("file1.txt"), b"content1").unwrap();
+    fs::write(dir_b.join("file1.txt"), b"content1").unwrap();
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("--flat")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Flat Mode Comparison"));
+}
+
+#[test]
+fn test_cli_flat_with_full_hash() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    fs::write(dir_a.join("file.txt"), b"test_content").unwrap();
+    fs::write(dir_b.join("file.txt"), b"test_content").unwrap();
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("--flat")
+        .arg("--full-hash")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Flat Mode Comparison"));
+}
+
+#[test]
+fn test_cli_flat_html_format() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    fs::write(dir_a.join("file.txt"), b"content").unwrap();
+    fs::write(dir_b.join("file.txt"), b"content").unwrap();
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("--flat")
+        .arg("--format")
+        .arg("html")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("<!DOCTYPE html>"))
+        .stdout(predicate::str::contains("Flat Mode Comparison"));
+}
+
+#[test]
+fn test_cli_flat_markdown_format() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    fs::write(dir_a.join("file.txt"), b"content").unwrap();
+    fs::write(dir_b.join("file.txt"), b"content").unwrap();
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("--flat")
+        .arg("--format")
+        .arg("markdown")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("# Flat Mode Comparison Report"));
+}
+
+#[test]
+fn test_cli_flat_duplicate_detection() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    // Create duplicate files in dir_a
+    fs::write(dir_a.join("file1.txt"), b"duplicate_content").unwrap();
+    fs::write(dir_a.join("file2.txt"), b"duplicate_content").unwrap();
+    fs::write(dir_b.join("file3.txt"), b"duplicate_content").unwrap();
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("--flat")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DUPLICATE"))
+        .stdout(predicate::str::contains("3 files"));
+}
+
+#[test]
+fn test_cli_flat_moved_files() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a.join("documents")).unwrap();
+    fs::create_dir_all(&dir_b.join("archive")).unwrap();
+
+    // Same content, different locations
+    fs::write(
+        dir_a.join("documents").join("report.txt"),
+        b"report_content",
+    )
+    .unwrap();
+    fs::write(dir_b.join("archive").join("report.txt"), b"report_content").unwrap();
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("--flat")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("documents"))
+        .stdout(predicate::str::contains("archive"));
+}
+
+#[test]
+fn test_cli_flat_with_output_file() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let dir_a = temp_dir.path().join("dir_a");
+    let dir_b = temp_dir.path().join("dir_b");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    fs::write(dir_a.join("file.txt"), b"content").unwrap();
+    fs::write(dir_b.join("file.txt"), b"content").unwrap();
+
+    let output_file = temp_dir.path().join("flat_output.txt");
+
+    let mut cmd = cli_command();
+    cmd.arg(dir_a.to_str().unwrap())
+        .arg(dir_b.to_str().unwrap())
+        .arg("--flat")
+        .arg("--output")
+        .arg(output_file.to_str().unwrap())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Report written to"));
+
+    assert!(output_file.exists());
+    let content = fs::read_to_string(output_file).unwrap();
+    assert!(content.contains("Flat Mode Comparison"));
+}
