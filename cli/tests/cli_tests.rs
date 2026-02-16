@@ -215,7 +215,7 @@ fn test_cli_output_file() {
         .arg(output_file.to_str().unwrap())
         .assert()
         .success()
-        .stdout(predicate::str::contains("Report written to"));
+        .stderr(predicate::str::contains("Report written to"));
 
     assert!(output_file.exists());
     let content = fs::read_to_string(output_file).unwrap();
@@ -442,7 +442,7 @@ fn test_cli_flat_with_output_file() {
         .arg(output_file.to_str().unwrap())
         .assert()
         .success()
-        .stdout(predicate::str::contains("Report written to"));
+        .stderr(predicate::str::contains("Report written to"));
 
     assert!(output_file.exists());
     let content = fs::read_to_string(output_file).unwrap();

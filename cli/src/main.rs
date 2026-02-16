@@ -3,6 +3,7 @@ use dir_compare_core::comparison::{
     compare_directories, compare_directories_flat, ComparisonStrategy, FastHashStrategy,
     FilenameOnlyStrategy, FilenameSizeStrategy, FlatComparisonOptions, SampledHashStrategy,
 };
+use dir_compare_core::logger::{self, LoggerConfig, LogLevel, OutputDestination};
 use dir_compare_core::output::{
     FlatHtmlFormatter, FlatMarkdownFormatter, FlatTextFormatter, Formatter, HtmlFormatter,
     MarkdownFormatter, TextFormatter,
@@ -50,40 +51,101 @@ struct Args {
     /// Use full-file hash instead of sampled hash (only applies to flat mode)
     #[arg(long)]
     full_hash: bool,
+
+    /// Log level (debug, info, warn, error)
+    #[arg(long, default_value = "info")]
+    log_level: String,
+
+    /// Log output destination (stdout, stderr)
+    #[arg(long, default_value = "stderr")]
+    log_dest: String,
+}
+
+/// Initialize the logger from environment variables or CLI arguments.
+fn init_logger(args: &Args) {
+    // Parse log level from environment or CLI
+    let level_from_env = std::env::var("DIR_COMPARE_LOG_LEVEL")
+        .ok()
+        .and_then(|s| LogLevel::from_str(&s));
+
+    let level = match level_from_env {
+        Some(lvl) => lvl,
+        None => match LogLevel::from_str(&args.log_level) {
+            Some(lvl) => lvl,
+            None => {
+                eprintln!(
+                    "Warning: Invalid log level '{}'. Using default 'info'. Valid values: debug, info, warn, error",
+                    args.log_level
+                );
+                LogLevel::default()
+            }
+        }
+    };
+
+    // Parse output destination from environment or CLI
+    let dest_from_env = std::env::var("DIR_COMPARE_LOG_DEST")
+        .ok()
+        .and_then(|s| match s.to_lowercase().as_str() {
+            "stdout" => Some(OutputDestination::Stdout),
+            "stderr" => Some(OutputDestination::Stderr),
+            _ => None,
+        });
+
+    let destination = match dest_from_env {
+        Some(dest) => dest,
+        None => match args.log_dest.to_lowercase().as_str() {
+            "stdout" => OutputDestination::Stdout,
+            "stderr" => OutputDestination::Stderr,
+            _ => {
+                eprintln!(
+                    "Warning: Invalid log destination '{}'. Using default 'stderr'. Valid values: stdout, stderr",
+                    args.log_dest
+                );
+                OutputDestination::default()
+            }
+        }
+    };
+
+    logger::init(LoggerConfig {
+        level,
+        destination,
+        format: None,
+    });
 }
 
 fn main() {
     let args = Args::parse();
+    init_logger(&args);
 
     if !args.dir_a.exists() {
-        eprintln!(
-            "Error: First directory does not exist: {}",
+        logger::error(&format!(
+            "First directory does not exist: {}",
             args.dir_a.display()
-        );
+        ));
         process::exit(1);
     }
 
     if !args.dir_b.exists() {
-        eprintln!(
-            "Error: Second directory does not exist: {}",
+        logger::error(&format!(
+            "Second directory does not exist: {}",
             args.dir_b.display()
-        );
+        ));
         process::exit(1);
     }
 
     if !args.dir_a.is_dir() {
-        eprintln!(
-            "Error: First path is not a directory: {}",
+        logger::error(&format!(
+            "First path is not a directory: {}",
             args.dir_a.display()
-        );
+        ));
         process::exit(1);
     }
 
     if !args.dir_b.is_dir() {
-        eprintln!(
-            "Error: Second path is not a directory: {}",
+        logger::error(&format!(
+            "Second path is not a directory: {}",
             args.dir_b.display()
-        );
+        ));
         process::exit(1);
     }
 
@@ -95,8 +157,8 @@ fn main() {
             Box::new(SampledHashStrategy::new(args.case_insensitive, args.verify))
         }
         _ => {
-            eprintln!("Error: Invalid comparison method '{}'", args.method);
-            eprintln!("Available methods: filename, size, hash, sampled");
+            logger::error(&format!("Invalid comparison method '{}'", args.method));
+            logger::error("Available methods: filename, size, hash, sampled");
             process::exit(1);
         }
     };
@@ -115,27 +177,28 @@ fn main() {
                     "html" => FlatHtmlFormatter.format(&result),
                     "markdown" | "md" => FlatMarkdownFormatter.format(&result),
                     _ => {
-                        eprintln!("Error: Invalid format '{}'", args.format);
-                        eprintln!("Available formats: text, html, markdown");
+                        logger::error(&format!("Invalid format '{}'", args.format));
+                        logger::error("Available formats: text, html, markdown");
                         process::exit(1);
                     }
                 };
 
                 match args.output {
                     Some(path) => match std::fs::write(&path, &output) {
-                        Ok(_) => println!("Report written to: {}", path.display()),
+                        Ok(_) => logger::info(&format!("Report written to: {}", path.display())),
                         Err(e) => {
-                            eprintln!("Error writing to file: {}", e);
+                            logger::error(&format!("Error writing to file: {}", e));
                             process::exit(1);
                         }
                     },
                     None => {
+                        // Output the result directly to stdout (not through logger)
                         println!("{}", output);
                     }
                 }
             }
             Err(e) => {
-                eprintln!("Error during comparison: {}", e);
+                logger::error(&format!("Error during comparison: {}", e));
                 process::exit(1);
             }
         }
@@ -153,8 +216,8 @@ fn main() {
                     "html" => Box::new(HtmlFormatter),
                     "markdown" | "md" => Box::new(MarkdownFormatter),
                     _ => {
-                        eprintln!("Error: Invalid format '{}'", args.format);
-                        eprintln!("Available formats: text, html, markdown");
+                        logger::error(&format!("Invalid format '{}'", args.format));
+                        logger::error("Available formats: text, html, markdown");
                         process::exit(1);
                     }
                 };
@@ -163,19 +226,20 @@ fn main() {
 
                 match args.output {
                     Some(path) => match std::fs::write(&path, &output) {
-                        Ok(_) => println!("Report written to: {}", path.display()),
+                        Ok(_) => logger::info(&format!("Report written to: {}", path.display())),
                         Err(e) => {
-                            eprintln!("Error writing to file: {}", e);
+                            logger::error(&format!("Error writing to file: {}", e));
                             process::exit(1);
                         }
                     },
                     None => {
+                        // Output the result directly to stdout (not through logger)
                         println!("{}", output);
                     }
                 }
             }
             Err(e) => {
-                eprintln!("Error during comparison: {}", e);
+                logger::error(&format!("Error during comparison: {}", e));
                 process::exit(1);
             }
         }
