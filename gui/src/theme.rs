@@ -1,6 +1,8 @@
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
+use dir_compare_core::logger;
+
 const APP_NAME: &str = "dir-compare";
 const THEME_CONFIG_FILE: &str = "theme.txt";
 
@@ -65,17 +67,17 @@ pub fn load_theme() -> Option<Theme> {
 pub fn save_theme(theme: Theme) {
     if let Some(config_dir) = get_config_dir() {
         if let Err(e) = std::fs::create_dir_all(&config_dir) {
-            eprintln!("Failed to create config directory: {}", e);
+            logger::error(&format!("Failed to create config directory: {}", e));
             return;
         }
         let path = config_dir.join(THEME_CONFIG_FILE);
         match std::fs::File::create(&path) {
             Ok(mut file) => {
                 if let Err(e) = file.write_all(theme.as_str().as_bytes()) {
-                    eprintln!("Failed to write theme config: {}", e);
+                    logger::error(&format!("Failed to write theme config: {}", e));
                 }
             }
-            Err(e) => eprintln!("Failed to create theme config file: {}", e),
+            Err(e) => logger::error(&format!("Failed to create theme config file: {}", e)),
         }
     }
 }
