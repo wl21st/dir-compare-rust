@@ -50,7 +50,7 @@ fn test_log_level_default() {
 fn test_logger_config_default() {
     let config = LoggerConfig::default();
     assert_eq!(config.level, LogLevel::Info);
-    assert_eq!(config.destination, OutputDestination::Stdout);
+    assert_eq!(config.destination, OutputDestination::Stderr);
     assert!(config.format.is_none());
 }
 
@@ -184,5 +184,5 @@ fn test_output_destination_from_str() {
 
 #[test]
 fn test_output_destination_default() {
-    assert_eq!(OutputDestination::default(), OutputDestination::Stdout);
+    assert_eq!(OutputDestination::default(), OutputDestination::Stderr);
 }

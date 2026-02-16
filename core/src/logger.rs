@@ -48,9 +48,9 @@ impl LogLevel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OutputDestination {
     /// Output to standard output (stdout)
-    #[default]
     Stdout,
     /// Output to standard error (stderr)
+    #[default]
     Stderr,
 }
 
@@ -69,7 +69,7 @@ impl Default for LoggerConfig {
     fn default() -> Self {
         Self {
             level: LogLevel::Info,
-            destination: OutputDestination::Stdout,
+            destination: OutputDestination::Stderr,
             format: None,
         }
     }
@@ -96,8 +96,33 @@ impl Logger {
 
     /// Initializes the global logger with custom configuration.
     ///
-    /// This should be called early in the program, before any logging.
-    /// If called after logging has already occurred, it will update the configuration.
+    /// # Important
+    ///
+    /// This should be called **early in the program**, ideally as one of the first
+    /// operations in `main()`, before any logging functions are called.
+    ///
+    /// If any logging function (debug, info, warn, error) is called before `init()`,
+    /// the logger will be initialized with default configuration and this function
+    /// will update the existing configuration. However, it's best practice to call
+    /// `init()` first to ensure consistent behavior.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use dir_compare_core::logger::{LoggerConfig, LogLevel, OutputDestination};
+    ///
+    /// fn main() {
+    ///     // Initialize logger FIRST
+    ///     dir_compare_core::logger::init(LoggerConfig {
+    ///         level: LogLevel::Info,
+    ///         destination: OutputDestination::Stderr,
+    ///         format: None,
+    ///     });
+    ///
+    ///     // Now use logging functions
+    ///     dir_compare_core::logger::info("Application started");
+    /// }
+    /// ```
     pub fn init(config: LoggerConfig) {
         let logger = Self::global();
         if let Ok(mut cfg) = logger.config.lock() {
@@ -177,36 +202,17 @@ impl Logger {
         }
     }
 
-    /// Gets the current timestamp in ISO 8601 format.
+    /// Gets the current timestamp as a Unix timestamp with microsecond precision.
+    ///
+    /// Format: `seconds.microseconds` (e.g., "1708099200.123456")
     fn get_timestamp(&self) -> String {
         match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(duration) => {
                 let secs = duration.as_secs();
-                let nanos = duration.subsec_nanos();
-
-                // Convert to human-readable format
-                let days = secs / 86400;
-                let hours = (secs % 86400) / 3600;
-                let minutes = (secs % 3600) / 60;
-                let seconds = secs % 60;
-
-                // Simple ISO-like format: YYYY-MM-DD HH:MM:SS
-                // Using Unix epoch as base (1970-01-01)
-                let years = 1970 + (days / 365);
-                let day_of_year = days % 365;
-
-                format!(
-                    "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}",
-                    years,
-                    (day_of_year / 30) + 1,
-                    (day_of_year % 30) + 1,
-                    hours,
-                    minutes,
-                    seconds,
-                    nanos / 1000
-                )
+                let micros = duration.subsec_micros();
+                format!("{}.{:06}", secs, micros)
             }
-            Err(_) => "unknown-time".to_string(),
+            Err(_) => "0.000000".to_string(),
         }
     }
 
@@ -308,7 +314,7 @@ mod tests {
     fn test_logger_config_default() {
         let config = LoggerConfig::default();
         assert_eq!(config.level, LogLevel::Info);
-        assert_eq!(config.destination, OutputDestination::Stdout);
+        assert_eq!(config.destination, OutputDestination::Stderr);
         assert!(config.format.is_none());
     }
 }

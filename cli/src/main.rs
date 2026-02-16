@@ -63,26 +63,48 @@ struct Args {
 
 /// Initialize the logger from environment variables or CLI arguments.
 fn init_logger(args: &Args) {
-    // Check environment variables first, then fall back to CLI args
-    let level = std::env::var("DIR_COMPARE_LOG_LEVEL")
+    // Parse log level from environment or CLI
+    let level_from_env = std::env::var("DIR_COMPARE_LOG_LEVEL")
         .ok()
-        .and_then(|s| LogLevel::from_str(&s))
-        .or_else(|| LogLevel::from_str(&args.log_level))
-        .unwrap_or_default();
+        .and_then(|s| LogLevel::from_str(&s));
 
-    let destination = std::env::var("DIR_COMPARE_LOG_DEST")
+    let level = match level_from_env {
+        Some(lvl) => lvl,
+        None => match LogLevel::from_str(&args.log_level) {
+            Some(lvl) => lvl,
+            None => {
+                eprintln!(
+                    "Warning: Invalid log level '{}'. Using default 'info'. Valid values: debug, info, warn, error",
+                    args.log_level
+                );
+                LogLevel::default()
+            }
+        }
+    };
+
+    // Parse output destination from environment or CLI
+    let dest_from_env = std::env::var("DIR_COMPARE_LOG_DEST")
         .ok()
         .and_then(|s| match s.to_lowercase().as_str() {
             "stdout" => Some(OutputDestination::Stdout),
             "stderr" => Some(OutputDestination::Stderr),
             _ => None,
-        })
-        .or_else(|| match args.log_dest.to_lowercase().as_str() {
-            "stdout" => Some(OutputDestination::Stdout),
-            "stderr" => Some(OutputDestination::Stderr),
-            _ => None,
-        })
-        .unwrap_or_default();
+        });
+
+    let destination = match dest_from_env {
+        Some(dest) => dest,
+        None => match args.log_dest.to_lowercase().as_str() {
+            "stdout" => OutputDestination::Stdout,
+            "stderr" => OutputDestination::Stderr,
+            _ => {
+                eprintln!(
+                    "Warning: Invalid log destination '{}'. Using default 'stderr'. Valid values: stdout, stderr",
+                    args.log_dest
+                );
+                OutputDestination::default()
+            }
+        }
+    };
 
     logger::init(LoggerConfig {
         level,
