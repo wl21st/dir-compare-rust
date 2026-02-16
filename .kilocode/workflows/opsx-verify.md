@@ -1,6 +1,3 @@
-description = "Verify implementation matches change artifacts before archiving"
-
-prompt = """
 Verify that an implementation matches the change artifacts (specs, tasks, design).
 
 **Input**: Optionally specify a change name after `/opsx:verify` (e.g., `/opsx:verify add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
@@ -158,4 +155,3 @@ Use clear markdown with:
 - Code references in format: `file.ts:123`
 - Specific, actionable recommendations
 - No vague suggestions like "consider reviewing"
-"""

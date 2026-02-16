@@ -1,6 +1,3 @@
-description = "Start a new change using the experimental artifact workflow (OPSX)"
-
-prompt = """
 Start a new change using the experimental artifact-driven approach.
 
 **Input**: The argument after `/opsx:new` is the change name (kebab-case), OR a description of what the user wants to build.
@@ -63,4 +60,3 @@ After completing the steps, summarize:
 - If the name is invalid (not kebab-case), ask for a valid name
 - If a change with that name already exists, suggest using `/opsx:continue` instead
 - Pass --schema if using a non-default workflow
-"""
