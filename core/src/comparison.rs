@@ -299,7 +299,12 @@ impl ComparisonStrategy for FastHashStrategy {
             (EntryKind::File, EntryKind::File) => {
                 let hash_a = compute_file_hash(&a.abs_path);
                 let hash_b = compute_file_hash(&b.abs_path);
-                hash_a == hash_b
+                match (hash_a, hash_b) {
+                    (Ok(hash_a), Ok(hash_b)) => hash_a == hash_b,
+                    (Err(_), Err(_)) => false,
+                    (Ok(_), Err(_)) => false,
+                    (Err(_), Ok(_)) => false,
+                }
             }
             _ => false,
         }
@@ -513,35 +518,23 @@ impl ComparisonStrategy for SampledHashStrategy {
     }
 }
 
-fn compute_file_hash(path: &std::path::Path) -> String {
+fn compute_file_hash(path: &std::path::Path) -> std::io::Result<String> {
     use std::fs::File;
     use std::hash::Hasher;
     use std::io::{BufReader, Read};
 
-    match File::open(path) {
-        Ok(file) => {
-            let mut reader = BufReader::new(file);
-            let mut hasher = fxhash::FxHasher::default();
-            let mut buffer = [0u8; 8192];
-            loop {
-                let bytes_read = match reader.read(&mut buffer) {
-                    Ok(0) => break,
-                    Ok(n) => n,
-                    Err(e) => {
-                        eprintln!("Warning: Error reading {}: {}", path.display(), e);
-                        break;
-                    }
-                };
-                hasher.write(&buffer[..bytes_read]);
-            }
-            format!("{:016x}", hasher.finish())
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+    let mut hasher = fxhash::FxHasher::default();
+    let mut buffer = [0u8; 8192];
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
         }
-        Err(e) => {
-            eprintln!("Warning: Could not open {}: {}", path.display(), e);
-            // Return a unique error marker that won't match another error
-            format!("ERROR:{}", path.display())
-        }
+        hasher.write(&buffer[..bytes_read]);
     }
+    Ok(format!("{:016x}", hasher.finish()))
 }
 
 fn compute_file_hash_sha256(path: &std::path::Path) -> String {
