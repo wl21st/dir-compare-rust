@@ -1,10 +1,15 @@
----
-description: Create a change and generate all artifacts needed for implementation in one go
+Propose a new change - create the change and generate all artifacts in one step.
+
+I'll create a change with artifacts:
+- proposal.md (what & why)
+- design.md (how)
+- tasks.md (implementation steps)
+
+When ready to implement, run /opsx:apply
+
 ---
 
-Fast-forward through artifact creation - generate everything needed to start implementation.
-
-**Input**: The argument after `/opsx-ff` is the change name (kebab-case), OR a description of what the user wants to build.
+**Input**: The argument after `/opsx:propose` is the change name (kebab-case), OR a description of what the user wants to build.
 
 **Steps**
 
@@ -21,7 +26,7 @@ Fast-forward through artifact creation - generate everything needed to start imp
    ```bash
    openspec new change "<name>"
    ```
-   This creates a scaffolded change in the planning home resolved by the CLI.
+   This creates a scaffolded change in the planning home resolved by the CLI with `.openspec.yaml`.
 
 3. **Get the artifact build order**
    ```bash
@@ -53,7 +58,7 @@ Fast-forward through artifact creation - generate everything needed to start imp
       - Read any completed dependency files for context
       - Create the artifact file using `template` as the structure and write it to `resolvedOutputPath`
       - Apply `context` and `rules` as constraints - but do NOT copy them into the file
-      - Show brief progress: "✓ Created <artifact-id>"
+      - Show brief progress: "Created <artifact-id>"
 
    b. **Continue until all `applyRequires` artifacts are complete**
       - After creating each artifact, re-run `openspec status --change "<name>" --json`
@@ -75,7 +80,7 @@ After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
 - What's ready: "All artifacts created! Ready for implementation."
-- Prompt: "Run `/opsx-apply` to start implementing."
+- Prompt: "Run `/opsx:apply` to start implementing."
 
 **Artifact Creation Guidelines**
 
